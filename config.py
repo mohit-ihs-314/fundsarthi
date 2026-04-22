@@ -15,6 +15,15 @@ class Config:
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    # 🔥 IMPORTANT FIX
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_pre_ping": True,     # reconnect if connection lost
+        "pool_recycle": 280,       # refresh connection before timeout
+        "pool_timeout": 20,
+        "pool_size": 5,
+        "max_overflow": 2
+    }
+
 
 cloudinary.config(
     cloud_name=os.environ.get("CLOUD_NAME"),
