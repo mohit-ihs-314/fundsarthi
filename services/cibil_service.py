@@ -96,7 +96,14 @@ def check_cibil_service(data):
             timeout=20
         )
 
-        cibil_res = res.json()
+        try:
+            cibil_res = res.json()
+        except Exception as e:
+            print("❌ RAW RESPONSE:", res.text)
+            return {
+                "status": "error",
+                "message": "Invalid response from CIBIL API"
+            }, 500
 
         if not cibil_res.get("success"):
             return {"status": "error", "message": "CIBIL failed"}, 400
