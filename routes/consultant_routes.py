@@ -11,31 +11,55 @@ consultant_bp = Blueprint("Consultant", __name__)
 
 @consultant_bp.route("/apply-consultant", methods=["POST"])
 def apply_consultant():
-    data = request.json
+    try:
+        data = request.json
 
-    consultant = Consultant(
-        consultant_id=f"CONS{random.randint(100000,999999)}",
-        full_name=data.get("fullName"),
-        city=data.get("city"),
-        expertise=json.dumps(data.get("expertise") or []),
-        experience=data.get("experience"),
-        languages=data.get("languages"),
-        bio=data.get("bio"),
-        phone=data.get("phone"),
-        photo=data.get("photo"),
+        if not data:
+            return jsonify({"status": "error", "message": "No data provided"}), 400
 
-        # ✅ SAFE DEFAULTS
-        certificate=data.get("certificate") or "",
-        govt_id=data.get("govt_id") or "",
-    )
+        # ✅ SAFE TYPE CONVERSION
+        experience = data.get("experience")
+        try:
+            experience = int(experience) if experience else None
+        except ValueError:
+            return jsonify({
+                "status": "error",
+                "message": "Experience must be a number"
+            }), 400
 
-    db.session.add(consultant)
-    db.session.commit()
+        # ✅ GENERATE UNIQUE CONSULTANT ID
+        consultant_id = f"CONS{random.randint(100000,999999)}{int(datetime.utcnow().timestamp())}"
 
-    return jsonify({
-        "status": "success",
-        "id": consultant.id
-    })
+        consultant = Consultant(
+            consultant_id=consultant_id,
+            full_name=data.get("fullName"),
+            city=data.get("city"),
+            expertise=json.dumps(data.get("expertise", [])),
+            experience=experience,
+            languages=data.get("languages"),
+            bio=data.get("bio"),
+            phone=data.get("phone"),
+            photo=data.get("photo") or "",
+            certificate=data.get("certificate") or "",
+            govt_id=data.get("govt_id") or "",
+        )
+
+        db.session.add(consultant)
+        db.session.commit()
+
+        return jsonify({
+            "status": "success",
+            "id": consultant.id
+        })
+
+    except Exception as e:
+        db.session.rollback()  # ✅ IMPORTANT
+        print("🔥 APPLY CONSULTANT ERROR:", str(e))
+
+        return jsonify({
+            "status": "error",
+            "message": str(e)
+        }), 500
 
 @consultant_bp.route("/upload-image", methods=["POST"])
 def upload_image():
