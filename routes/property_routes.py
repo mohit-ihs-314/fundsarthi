@@ -115,7 +115,7 @@ def get_properties():
             "id": p.id,
             "title": p.title,
             "location": f"{p.locality}, {p.city}",
-            "price": int(p.price),
+            "price": p.price,
             "beds": p.bedrooms,
             "baths": p.bathrooms,
             "area": p.size,
