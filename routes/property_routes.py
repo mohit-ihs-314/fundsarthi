@@ -111,6 +111,13 @@ def get_properties():
 
     result = []
     for p in properties:
+
+        # ✅ SAFE PARSE FEATURES
+        try:
+            features = json.loads(p.features) if p.features else {}
+        except:
+            features = {}
+
         result.append({
             "id": p.id,
             "title": p.title,
@@ -121,7 +128,10 @@ def get_properties():
             "area": p.size,
             "purpose": p.purpose,
             "type": "buy",
-            "image": json.loads(p.photos)[0] if p.photos else ""
+            "image": json.loads(p.photos)[0] if p.photos else "",
+
+            # ✅ ADD THIS (MOST IMPORTANT)
+            "features": features
         })
 
     return jsonify(result)
