@@ -51,6 +51,7 @@ def add_property():
                 "power_backup": data.get("powerBackup"),
                 "construction_status": data.get("constructionStatus"),
                 "possession": data.get("possession"),
+                "builder": data.get("builder"),
             }
         })
     )
