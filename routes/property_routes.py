@@ -130,6 +130,7 @@ def get_properties():
             "purpose": p.purpose,
             "type": "buy",
             "image": json.loads(p.photos)[0] if p.photos else "",
+            "mobile": p.mobile,
 
             # ✅ ADD THIS (MOST IMPORTANT)
             "features": features
