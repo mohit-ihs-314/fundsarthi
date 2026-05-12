@@ -57,6 +57,16 @@ def update_status():
                 step.is_done = True
 
         elif data["status"] == "Approved":
+
+            if step.step_name in [
+                "Application Submitted",
+                "Document Verification",
+                "Approval"
+            ]:
+                step.is_done = True
+
+        elif data["status"] == "Disbursed":
+
             step.is_done = True
 
         elif data["status"] == "Rejected":

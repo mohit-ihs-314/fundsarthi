@@ -48,7 +48,8 @@ def apply_loan_service(data):
         "Application Submitted",
         "Document Verification",
         "Bank Processing",
-        "Approval"
+        "Approval",
+        "Disbursed"
     ]
 
     for i, step in enumerate(steps):
@@ -102,14 +103,35 @@ def update_loan_status_service(data):
     steps = LoanStep.query.filter_by(loan_id=loan.id).all()
 
     for step in steps:
+
+        # ✅ IN PROCESS
         if status == "In Process":
-            if step.step_name in ["Application Submitted", "Document Verification"]:
+
+            if step.step_name in [
+                "Application Submitted",
+                "Document Verification"
+            ]:
                 step.is_done = True
 
+        # ✅ APPROVED
         elif status == "Approved":
+
+            if step.step_name in [
+                "Application Submitted",
+                "Document Verification",
+                "Bank Processing",
+                "Approval"
+            ]:
+                step.is_done = True
+
+        # ✅ DISBURSED
+        elif status == "Disbursed":
+
             step.is_done = True
 
+        # ✅ REJECTED
         elif status == "Rejected":
+
             if step.step_name == "Approval":
                 step.is_done = False
 
