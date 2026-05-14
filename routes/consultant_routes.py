@@ -150,6 +150,7 @@ def get_consultant(id):
 
 @consultant_bp.route("/book-consultation", methods=["POST"])
 def book_consultation():
+
     data = request.json
 
     booking_id = "VB" + str(random.randint(10000000, 99999999))
@@ -160,14 +161,14 @@ def book_consultation():
         consultant_name=data.get("consultant_name"),
         user_mobile=data.get("user_mobile"),
 
-        # ✅ fallback fix
         customer_name=data.get("customer_name") or "User",
         consultation_type=data.get("consultation_type") or "Residential",
 
         date=data.get("date") or "",
         time=data.get("time") or "",
+
+        status="Pending"
     )
-    
 
     db.session.add(booking)
     db.session.commit()
@@ -176,7 +177,6 @@ def book_consultation():
         "status": "success",
         "booking_id": booking_id
     })
-
 
 ###############################################################################################
 
@@ -233,6 +233,111 @@ def get_my_bookings():
     return jsonify({
         "status": "success",
         "data": result
+    })
+
+@consultant_bp.route("/my-consultations", methods=["GET"])
+def get_my_consultations():
+
+    mobile = request.args.get("mobile")
+
+    if not mobile:
+        return jsonify({
+            "status": "error",
+            "message": "mobile required"
+        }), 400
+
+    bookings = Booking.query.filter_by(
+        user_mobile=mobile
+    ).order_by(Booking.id.desc()).all()
+
+    result = []
+
+    for b in bookings:
+
+        # format time
+        time_str = None
+
+        if b.time:
+            try:
+                time_obj = datetime.strptime(str(b.time), "%H:%M:%S")
+                time_str = time_obj.strftime("%I:%M %p")
+            except:
+                time_str = str(b.time)
+
+        result.append({
+            "id": b.booking_id,
+            "consultant_name": b.consultant_name,
+            "consultation_type": b.consultation_type,
+            "date": str(b.date),
+            "time": time_str,
+            "status": b.status,
+            "created_at": b.created_at.strftime("%Y-%m-%d %H:%M:%S") if b.created_at else None
+        })
+
+    return jsonify({
+        "status": "success",
+        "data": result
+    })
+
+@consultant_bp.route("/track-consultation/<booking_id>", methods=["GET"])
+def track_consultation(booking_id):
+
+    booking = Booking.query.filter_by(
+        booking_id=booking_id
+    ).first()
+
+    if not booking:
+        return jsonify({
+            "status": "error",
+            "message": "Booking not found"
+        }), 404
+
+    # timeline logic
+    steps = [
+        {
+            "step_name": "Booking Requested",
+            "is_done": True
+        },
+        {
+            "step_name": "Consultant Assigned",
+            "is_done": booking.status in [
+                "Confirmed",
+                "Completed"
+            ]
+        },
+        {
+            "step_name": "Consultation Confirmed",
+            "is_done": booking.status in [
+                "Confirmed",
+                "Completed"
+            ]
+        },
+        {
+            "step_name": "Consultation Completed",
+            "is_done": booking.status == "Completed"
+        }
+    ]
+
+    time_str = None
+
+    if booking.time:
+        try:
+            time_obj = datetime.strptime(str(booking.time), "%H:%M:%S")
+            time_str = time_obj.strftime("%I:%M %p")
+        except:
+            time_str = str(booking.time)
+
+    return jsonify({
+        "status": "success",
+        "data": {
+            "id": booking.booking_id,
+            "consultant_name": booking.consultant_name,
+            "consultation_type": booking.consultation_type,
+            "date": str(booking.date),
+            "time": time_str,
+            "status": booking.status,
+            "steps": steps
+        }
     })
 
 @consultant_bp.route("/update-booking-status", methods=["POST"])
