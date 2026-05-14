@@ -15,6 +15,10 @@ class Consultant(db.Model):
     bio = db.Column(db.Text)
     phone = db.Column(db.String(20))
     photo = db.Column(db.Text)
+    consultation_fee = db.Column(
+        db.Integer,
+        default=500
+    )
 
     # ✅ NEW FIELDS
     certificate = db.Column(db.Text)
