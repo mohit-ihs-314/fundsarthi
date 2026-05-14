@@ -292,6 +292,7 @@ def track_consultation(booking_id):
             "message": "Booking not found"
         }), 404
 
+    
     # timeline logic
     steps = [
         {
@@ -301,6 +302,7 @@ def track_consultation(booking_id):
         {
             "step_name": "Consultant Assigned",
             "is_done": booking.status in [
+                "Assigned",
                 "Confirmed",
                 "Completed"
             ]
