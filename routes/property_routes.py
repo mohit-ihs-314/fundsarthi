@@ -132,9 +132,10 @@ def get_properties():
             "type": "buy",
             "image": json.loads(p.photos)[0] if p.photos else "",
             "mobile": p.mobile,
-            "listing_type": property.listing_type,
 
-            # ✅ ADD THIS (MOST IMPORTANT)
+            # ✅ FIXED
+            "listing_type": p.listing_type,
+
             "features": features
         })
 
