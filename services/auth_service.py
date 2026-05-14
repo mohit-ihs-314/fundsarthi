@@ -86,21 +86,36 @@ def verify_otp_service(data):
     mobile = data.get("mobile")
     otp = data.get("otp")
 
-    if not mobile or not otp:
-        return {"status": "error", "message": "Mobile and OTP required"}, 400
+    user = User.query.filter_by(mobile=mobile).first()
 
-    is_valid, message = verify_otp(mobile, otp)
-
-    if is_valid:
+    if not user:
         return {
-            "status": "success",
-            "message": "Login successful"
-        }, 200
+            "status": "error",
+            "message": "User not found"
+        }, 404
+
+    # your otp validation logic
+    if user.otp != otp:
+        return {
+            "status": "error",
+            "message": "Invalid OTP"
+        }, 400
 
     return {
-        "status": "error",
-        "message": message
-    }, 400
+        "status": "success",
+        "message": "OTP verified",
+
+        # ✅ ADD THIS
+        "user": {
+            "id": user.id,
+            "name": user.name,
+            "mobile": user.mobile,
+            "city": user.city,
+            "employment": user.employment,
+            "income": user.income
+        }
+
+    }, 200
 
 
 # =========================
