@@ -42,6 +42,7 @@ def apply_consultant():
             photo=data.get("photo") or "",
             certificate=data.get("certificate") or "",
             govt_id=data.get("govt_id") or "",
+            consultation_fee=data.get("consultation_fee"),
         )
 
         db.session.add(consultant)

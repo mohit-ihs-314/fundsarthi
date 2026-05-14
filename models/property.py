@@ -31,6 +31,7 @@ class Property(db.Model):
 
     purpose = db.Column(db.String(10))
     features = db.Column(db.Text)
+    listing_type = db.Column(db.String(50), default="normal")
 
 
 class PropertyEnquiry(db.Model):

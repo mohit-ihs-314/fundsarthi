@@ -31,6 +31,7 @@ def add_property():
         name=data.get("name"),
         mobile=data.get("mobile"),
         email=data.get("email"),
+        listing_type=data.get("listing_type", "normal"),
 
         # ✅ MEDIA
         photos=json.dumps(data.get("photos") or []),
@@ -131,6 +132,7 @@ def get_properties():
             "type": "buy",
             "image": json.loads(p.photos)[0] if p.photos else "",
             "mobile": p.mobile,
+            "listing_type": property.listing_type,
 
             # ✅ ADD THIS (MOST IMPORTANT)
             "features": features
