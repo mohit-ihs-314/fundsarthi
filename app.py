@@ -23,6 +23,7 @@ def create_app():
         from routes.consultant_routes import consultant_bp
         from routes.booking_routes import booking_bp
         from routes.partner_routes import partner_bp
+        from routes.activity_routes import activity_bp
 
         app.register_blueprint(auth_bp, url_prefix="/api")
         app.register_blueprint(loan_bp, url_prefix="/api")
@@ -30,6 +31,7 @@ def create_app():
         app.register_blueprint(consultant_bp, url_prefix="/api")
         app.register_blueprint(booking_bp, url_prefix="/api")
         app.register_blueprint(partner_bp, url_prefix="/api")
+        app.register_blueprint(activity_bp, url_prefix="/api")
 
         print("✅ Routes loaded")
 

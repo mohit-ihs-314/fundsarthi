@@ -2,6 +2,7 @@ import random
 from flask import Blueprint, request, jsonify
 from extensions import db
 from models.consultant import Booking
+from services.activity_service import add_activity
 
 booking_bp = Blueprint("booking", __name__)
 
@@ -23,6 +24,12 @@ def book_consultation():
 
         db.session.add(new_booking)
         db.session.commit()
+        add_activity(
+            data.get("user_mobile"),
+            "consultation",
+            "Consultation Booked",
+            f"Consultation booked with {data.get('consultant_name')}"
+        )
 
         return jsonify({
             "status": "success",

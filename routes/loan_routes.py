@@ -3,6 +3,7 @@ from models.loan import Loan, LoanStep
 from extensions import db
 from services.loan_service import apply_loan_service
 from models.user import User
+from services.activity_service import add_activity
 
 loan_bp = Blueprint("loan", __name__)
 
@@ -11,6 +12,16 @@ loan_bp = Blueprint("loan", __name__)
 def apply_loan():
     data = request.json
     res, status = apply_loan_service(data)
+
+    if status == 200:
+
+        add_activity(
+            data.get("mobile"),
+            "loan",
+            "Loan Application Submitted",
+            f"{data.get('loan_type', 'Loan')} application submitted successfully"
+        )
+
     return jsonify(res), status
 
 # GET ALL LOANS
@@ -74,6 +85,12 @@ def update_status():
                 step.is_done = False
 
     db.session.commit()
+    add_activity(
+        loan.mobile,
+        "loan_status",
+        "Loan Status Updated",
+        f"Your loan status changed to {loan.status}"
+    )
 
     return jsonify({"status": "success"})
 

@@ -4,6 +4,7 @@ from extensions import db
 import random
 import cloudinary.uploader
 import json
+from services.activity_service import add_activity
 
 property_bp = Blueprint("property", __name__)
 
@@ -59,6 +60,12 @@ def add_property():
 
     db.session.add(new_property)
     db.session.commit()
+    add_activity(
+        data.get("mobile"),
+        "property",
+        "Property Listed",
+        f"{data.get('title')} was submitted successfully"
+    )
 
     return jsonify({
         "status": "success",
@@ -156,6 +163,16 @@ def get_property(id):
 
     extra = features.get("extra", {})
 
+    mobile = request.args.get("mobile")
+
+    if mobile:
+        add_activity(
+            mobile,
+            "view",
+            "Viewed Property",
+            property.title
+        )
+
     return jsonify({
         "status": "success",
         "data": {
@@ -209,6 +226,13 @@ def schedule_visit():
 
     db.session.add(enquiry)
     db.session.commit()
+
+    add_activity(
+        data.get("mobile"),
+        "visit",
+        "Property Visit Scheduled",
+        f"Visit scheduled for {data.get('property_title')}"
+    )
 
     return jsonify({
         "status": "success",

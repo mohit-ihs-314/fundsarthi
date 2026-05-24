@@ -6,6 +6,7 @@ import cloudinary.uploader
 from models.consultant import Booking
 import json
 from datetime import datetime
+from services.activity_service import add_activity
 
 consultant_bp = Blueprint("Consultant", __name__)
 
@@ -47,6 +48,12 @@ def apply_consultant():
 
         db.session.add(consultant)
         db.session.commit()
+        add_activity(
+            data.get("phone"),
+            "consultant_apply",
+            "Consultant Application Submitted",
+            "Your consultant profile was submitted for approval"
+        )
 
         return jsonify({
             "status": "success",
@@ -173,6 +180,12 @@ def book_consultation():
 
     db.session.add(booking)
     db.session.commit()
+    add_activity(
+        data.get("user_mobile"),
+        "consultation",
+        "Consultation Booked",
+        f"Consultation booked with {data.get('consultant_name')}"
+    )
 
     return jsonify({
         "status": "success",
@@ -330,6 +343,13 @@ def track_consultation(booking_id):
         except:
             time_str = str(booking.time)
 
+    add_activity(
+        booking.user_mobile,
+        "consultation_view",
+        "Viewed Consultation Status",
+        f"Checked booking {booking.booking_id}"
+        )
+
     return jsonify({
         "status": "success",
         "data": {
@@ -355,6 +375,13 @@ def update_booking_status():
     booking.status = data.get("status")
     db.session.commit()
 
+    add_activity(
+        booking.user_mobile,
+        "consultation_status",
+        "Consultation Status Updated",
+        f"Booking status changed to {booking.status}"
+    )
+
     return jsonify({"status": "success"})
 
 @consultant_bp.route("/reschedule-booking", methods=["POST"])
@@ -370,6 +397,13 @@ def reschedule_booking():
     booking.time = data.get("time")
 
     db.session.commit()
+
+    add_activity(
+        booking.user_mobile,
+        "consultation_reschedule",
+        "Consultation Rescheduled",
+        f"Consultation moved to {booking.date}"
+    )
 
     return jsonify({"status": "success"})
 
