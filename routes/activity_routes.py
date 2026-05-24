@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from instance.db import get_db_connection
+from sqlalchemy import text
+from extensions import db
 
 activity_bp = Blueprint("activity_bp", __name__)
 
@@ -12,25 +13,35 @@ def get_activities():
         return jsonify({
             "status": "error",
             "message": "Mobile required"
-        })
+        }), 400
 
     try:
 
-        conn = get_db_connection()
-        cursor = conn.cursor(dictionary=True)
+        result = db.session.execute(
+            text("""
+                SELECT *
+                FROM user_activities
+                WHERE mobile = :mobile
+                ORDER BY created_at DESC
+                LIMIT 50
+            """),
+            {
+                "mobile": mobile
+            }
+        )
 
-        cursor.execute("""
-            SELECT *
-            FROM user_activities
-            WHERE mobile = %s
-            ORDER BY created_at DESC
-            LIMIT 50
-        """, (mobile,))
+        activities = []
 
-        activities = cursor.fetchall()
+        for row in result.mappings():
 
-        cursor.close()
-        conn.close()
+            activities.append({
+                "id": row["id"],
+                "mobile": row["mobile"],
+                "type": row["type"],
+                "title": row["title"],
+                "description": row["description"],
+                "created_at": str(row["created_at"])
+            })
 
         return jsonify({
             "status": "success",
@@ -39,9 +50,9 @@ def get_activities():
 
     except Exception as e:
 
-        print(e)
+        print("Activities Error:", e)
 
         return jsonify({
             "status": "error",
             "message": "Server error"
-        })
+        }), 500
