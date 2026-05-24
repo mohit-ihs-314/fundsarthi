@@ -4,6 +4,7 @@ from extensions import db
 import random
 import cloudinary.uploader
 import json
+from sqlalchemy import desc
 from services.activity_service import add_activity
 
 property_bp = Blueprint("property", __name__)
@@ -237,4 +238,44 @@ def schedule_visit():
     return jsonify({
         "status": "success",
         "message": "Enquiry submitted successfully"
+    })
+
+@property_bp.route("/my-properties", methods=["GET"])
+def my_properties():
+
+    mobile = request.args.get("mobile")
+
+    if not mobile:
+        return jsonify({
+            "status": "error",
+            "message": "Mobile required"
+        }), 400
+
+    properties = Property.query.filter_by(
+        mobile=mobile
+    ).order_by(Property.id.desc()).all()
+
+    result = []
+
+    for p in properties:
+
+        try:
+            photos = json.loads(p.photos) if p.photos else []
+        except:
+            photos = []
+
+        result.append({
+            "id": p.id,
+            "property_id": p.property_id,
+            "title": p.title,
+            "location": f"{p.locality}, {p.city}",
+            "price": p.price,
+            "status": p.status,
+            "image": photos[0] if len(photos) > 0 else "",
+            "created_at": str(p.created_at)
+        })
+
+    return jsonify({
+        "status": "success",
+        "data": result
     })
