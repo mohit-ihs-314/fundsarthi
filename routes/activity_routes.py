@@ -4,7 +4,7 @@ from extensions import db
 
 activity_bp = Blueprint("activity_bp", __name__)
 
-@activity_bp.route("/api/activities", methods=["GET"])
+@activity_bp.route("/activities", methods=["GET"])
 def get_activities():
 
     mobile = request.args.get("mobile")
