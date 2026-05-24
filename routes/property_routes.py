@@ -272,7 +272,7 @@ def my_properties():
             "price": p.price,
             "status": p.status,
             "image": photos[0] if len(photos) > 0 else "",
-            "created_at": str(p.created_at)
+            "created_at": str(p.created_at) if hasattr(p, "created_at") else ""
         })
 
     return jsonify({
