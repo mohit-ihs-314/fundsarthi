@@ -476,3 +476,33 @@ def consultant_slots():
         "status": "success",
         "data": result
     })
+
+@consultant_bp.route("/consultant-available-dates", methods=["GET"])
+def consultant_available_dates():
+
+    consultant_id = request.args.get("consultant_id")
+
+    if not consultant_id:
+        return jsonify({
+            "status": "error",
+            "message": "consultant_id required"
+        }), 400
+
+    slots = ConsultantSlot.query.filter_by(
+        consultant_id=consultant_id,
+        is_booked=False
+    ).all()
+
+    unique_dates = []
+
+    for slot in slots:
+
+        date_str = str(slot.slot_date)
+
+        if date_str not in unique_dates:
+            unique_dates.append(date_str)
+
+    return jsonify({
+        "status": "success",
+        "data": unique_dates
+    })
