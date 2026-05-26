@@ -5,6 +5,7 @@ import random
 import cloudinary.uploader
 from models.consultant import Booking
 import json
+from models.consultant_slot import ConsultantSlot
 from datetime import datetime
 from services.activity_service import add_activity
 
@@ -419,4 +420,59 @@ def get_consultant_id():
     return jsonify({
         "status": "success",
         "consultant_id": consultant.id
+    })
+
+
+@consultant_bp.route("/add-slot", methods=["POST"])
+def add_slot():
+
+    data = request.json
+
+    slot = ConsultantSlot(
+
+        consultant_id=data.get("consultant_id"),
+
+        slot_date=datetime.strptime(
+            data.get("date"),
+            "%Y-%m-%d"
+        ).date(),
+
+        slot_time=datetime.strptime(
+            data.get("time"),
+            "%H:%M"
+        ).time()
+    )
+
+    db.session.add(slot)
+    db.session.commit()
+
+    return jsonify({
+        "status": "success"
+    })
+
+@consultant_bp.route("/consultant-slots", methods=["GET"])
+def consultant_slots():
+
+    consultant_id = request.args.get("consultant_id")
+    date = request.args.get("date")
+
+    slots = ConsultantSlot.query.filter_by(
+        consultant_id=consultant_id,
+        slot_date=date,
+        is_booked=False
+    ).all()
+
+    result = []
+
+    for slot in slots:
+
+        result.append({
+            "id": slot.id,
+            "time": slot.slot_time.strftime("%I:%M %p"),
+            "value": slot.slot_time.strftime("%H:%M:%S")
+        })
+
+    return jsonify({
+        "status": "success",
+        "data": result
     })
