@@ -153,6 +153,7 @@ def get_consultant(id):
             "expertise": consultant.expertise,
             "experience": consultant.experience,
             "languages": consultant.languages,
+            "consultation_fee": consultant.consultation_fee,
             "bio": consultant.bio,
             "phone": consultant.phone,
             "photo": consultant.photo,
