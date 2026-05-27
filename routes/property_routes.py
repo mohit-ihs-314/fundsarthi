@@ -221,7 +221,6 @@ def schedule_visit():
         name=data.get("name"),
         mobile=data.get("mobile"),
         email=data.get("email"),
-        visit_date=data.get("visit_date"),
         message=data.get("message"),
     )
 
