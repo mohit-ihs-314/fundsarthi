@@ -45,7 +45,6 @@ class PropertyEnquiry(db.Model):
     mobile = db.Column(db.String(15))
     email = db.Column(db.String(100))
 
-    visit_date = db.Column(db.String(50))
     message = db.Column(db.Text)
 
     status = db.Column(db.String(20), default="new")
