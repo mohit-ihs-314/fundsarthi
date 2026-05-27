@@ -36,6 +36,7 @@ def apply_consultant():
             consultant_id=consultant_id,
             full_name=data.get("fullName"),
             city=data.get("city"),
+            address=data.get("address"),
             expertise=json.dumps(data.get("expertise", [])),
             experience=experience,
             languages=data.get("languages"),
@@ -125,7 +126,7 @@ def get_consultants():
             "languages": c.languages.split(",") if c.languages else [],
             "rating": 4.5,  # temp (later DB se)
             "reviews": 0,
-            "location": c.city,
+            "location": c.address if c.address else c.city,
             "verified": True
         })
 
@@ -147,6 +148,7 @@ def get_consultant(id):
             "id": consultant.id,
             "full_name": consultant.full_name,
             "city": consultant.city,
+            "address": consultant.address,
             "expertise": consultant.expertise,
             "experience": consultant.experience,
             "languages": consultant.languages,

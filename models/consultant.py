@@ -23,6 +23,7 @@ class Consultant(db.Model):
     # ✅ NEW FIELDS
     certificate = db.Column(db.Text)
     govt_id = db.Column(db.Text)
+    address = db.Column(db.Text)
 
     status = db.Column(db.String(20), default="pending")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
