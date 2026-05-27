@@ -127,6 +127,7 @@ def get_consultants():
             "rating": 4.5,  # temp (later DB se)
             "reviews": 0,
             "location": c.address if c.address else c.city,
+            "consultation_fee": c.consultation_fee,
             "verified": True
         })
 
