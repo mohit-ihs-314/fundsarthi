@@ -166,30 +166,49 @@ def book_consultation():
 
     data = request.json
 
-    booking_id = "VB" + str(random.randint(10000000, 99999999))
+    booking_id = "VB" + str(
+        random.randint(10000000, 99999999)
+    )
 
     booking = Booking(
+
         booking_id=booking_id,
+
         consultant_id=data.get("consultant_id"),
         consultant_name=data.get("consultant_name"),
+
         user_mobile=data.get("user_mobile"),
+        customer_name=data.get("customer_name"),
 
-        customer_name=data.get("customer_name") or "User",
-        consultation_type=data.get("consultation_type") or "Residential",
+        consultation_type="Vastu Consultation",
 
-        date=data.get("date") or "",
-        time=data.get("time") or "",
+        property_type=data.get("propertyType"),
+        city=data.get("city"),
+        floor_plan=data.get("floorPlan"),
+
+        primary_reason=data.get("primaryReason"),
+
+        consultation_timeline=data.get("consultationTime"),
+
+        objective=data.get("objective"),
+
+        preferred_consultation_type=data.get(
+            "consultationType"
+        ),
+
+        property_size=data.get("propertySize"),
 
         status="Pending"
     )
 
     db.session.add(booking)
     db.session.commit()
+
     add_activity(
         data.get("user_mobile"),
         "consultation",
-        "Consultation Booked",
-        f"Consultation booked with {data.get('consultant_name')}"
+        "Consultation Request Submitted",
+        f"Request submitted for {data.get('consultant_name')}"
     )
 
     return jsonify({
@@ -286,11 +305,11 @@ def get_my_consultations():
         result.append({
             "id": b.booking_id,
             "consultant_name": b.consultant_name,
-            "consultation_type": b.consultation_type,
-            "date": str(b.date),
-            "time": time_str,
+            "property_type": b.property_type,
+            "city": b.city,
+            "consultation_type": b.preferred_consultation_type,
             "status": b.status,
-            "created_at": b.created_at.strftime("%Y-%m-%d %H:%M:%S") if b.created_at else None
+            "created_at": b.created_at.strftime("%Y-%m-%d %H:%M:%S")
         })
 
     return jsonify({

@@ -33,7 +33,7 @@ def add_property():
         name=data.get("name"),
         mobile=data.get("mobile"),
         email=data.get("email"),
-        listing_type=data.get("listing_type", "normal"),
+        listing_type="normal",
 
         # ✅ MEDIA
         photos=json.dumps(data.get("photos") or []),

@@ -32,16 +32,34 @@ class Booking(db.Model):
     __tablename__ = "bookings"
 
     id = db.Column(db.Integer, primary_key=True)
+
     booking_id = db.Column(db.String(50))
+
     consultant_id = db.Column(db.Integer)
     consultant_name = db.Column(db.String(255))
-    user_mobile = db.Column(db.String(20))
 
-    # ✅ ADD THESE
+    user_mobile = db.Column(db.String(20))
     customer_name = db.Column(db.String(255))
+
     consultation_type = db.Column(db.String(50))
 
-    date = db.Column(db.String(50))
-    time = db.Column(db.String(50))
+    property_type = db.Column(db.String(100))
+    city = db.Column(db.String(100))
+    floor_plan = db.Column(db.String(100))
+
+    primary_reason = db.Column(db.String(255))
+
+    consultation_timeline = db.Column(db.String(100))
+
+    objective = db.Column(db.String(255))
+
+    preferred_consultation_type = db.Column(db.String(100))
+
+    property_size = db.Column(db.String(100))
+
     status = db.Column(db.String(20), default="pending")
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow
+    )
