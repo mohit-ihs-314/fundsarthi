@@ -211,6 +211,16 @@ def get_property(id):
         }
     })
 
+@property_bp.route("/test-sms", methods=["GET"])
+def test_sms():
+
+    result = send_property_enquiry_sms()
+
+    return jsonify({
+        "status": "success",
+        "result": result
+    })
+
 
 @property_bp.route("/schedule-visit", methods=["POST"])
 def schedule_visit():
