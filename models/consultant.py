@@ -57,6 +57,9 @@ class Booking(db.Model):
 
     property_size = db.Column(db.String(100))
 
+    date = db.Column(db.Date)
+    time = db.Column(db.Time)
+
     status = db.Column(db.String(20), default="pending")
 
     created_at = db.Column(

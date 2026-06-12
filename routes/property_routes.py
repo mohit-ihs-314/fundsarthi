@@ -240,9 +240,9 @@ def schedule_visit():
         print("Customer Mobile:", data.get("mobile"))
 
         sms_result = send_property_enquiry_sms(
-            owner_mobile="9099096937",
-            property_title="ABC",
-            customer_mobile="9999999999"
+            owner_mobile=property.mobile,
+            property_title=property.title,
+            customer_mobile=data.get("mobile")
         )
 
         print("\n========== SMS RESULT ==========")

@@ -2,17 +2,27 @@ import requests
 
 def send_property_enquiry_sms(owner_mobile, property_title, customer_mobile):
 
-    print("\n========== PROPERTY SMS TEST ==========")
+    print("\n========== PROPERTY SMS START ==========")
+    print("Owner Mobile:", owner_mobile)
+    print("Property Title:", property_title)
+    print("Customer Mobile:", customer_mobile)
+
+    # Validation
+    if not owner_mobile or len(owner_mobile) != 10 or not owner_mobile.isdigit():
+        print("❌ Invalid Owner Mobile")
+        return {
+            "status": "error",
+            "message": "Invalid owner mobile number"
+        }, 400
 
     url = "https://api.onex-aura.com/api/jsmslist"
 
-    # HARD CODED TEST
     message = (
-        "Dear User,\n"
-        "You have received a new enquiry for property TEST123.\n"
-        "Customer Mobile: 9999999999\n"
-        "Team Fundsarth"
+        f"Dear User, A new property enquiry has been received for property {property_title}. Customer Mobile: {customer_mobile}. Team Fundsarthi"
     )
+
+    print("\n========== SMS MESSAGE ==========")
+    print(message)
 
     payload = {
         "key": "YjDtvwUv",
@@ -27,24 +37,65 @@ def send_property_enquiry_sms(owner_mobile, property_title, customer_mobile):
         ]
     }
 
-    print("MESSAGE:")
-    print(message)
-
-    print("\nPAYLOAD:")
+    print("\n========== SMS PAYLOAD ==========")
     print(payload)
 
     try:
+        print("\n========== CALLING SMS API ==========")
+
         response = requests.post(
             url,
             json=payload,
             timeout=10
         )
 
-        print("\nSTATUS:", response.status_code)
-        print("RESPONSE:", response.text)
+        print("\n========== SMS API RESPONSE ==========")
+        print("Status Code:", response.status_code)
+        print("Response Text:", response.text)
 
-        return response.text
+        try:
+            res_json = response.json()
+
+            print("\n========== PARSED RESPONSE ==========")
+            print(res_json)
+
+        except Exception as e:
+            print("❌ JSON Parse Error:", str(e))
+            return {
+                "status": "error",
+                "message": "Invalid response from SMS API"
+            }, 500
+
+        sms_data = res_json.get("smslist", {}).get("sms", [])
+
+        print("\n========== SMS DATA ==========")
+        print(sms_data)
+
+        if sms_data:
+            print("SMS Status:", sms_data[0].get("status"))
+            print("SMS Reason:", sms_data[0].get("reason"))
+            print("Message ID:", sms_data[0].get("messageid"))
+
+        if sms_data and sms_data[0].get("status") == "success":
+            print("✅ SMS Accepted By Gateway")
+
+            return {
+                "status": "success",
+                "message": "Property enquiry SMS sent successfully"
+            }, 200
+
+        print("❌ SMS Failed")
+
+        return {
+            "status": "error",
+            "message": sms_data[0].get("reason", "SMS failed")
+            if sms_data else "SMS failed"
+        }, 400
 
     except Exception as e:
-        print("ERROR:", str(e))
-        return str(e)
+        print("\n❌ SMS Exception:", str(e))
+
+        return {
+            "status": "error",
+            "message": "Failed to send SMS"
+        }, 500

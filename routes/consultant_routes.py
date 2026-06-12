@@ -198,10 +198,35 @@ def book_consultation():
 
         property_size=data.get("propertySize"),
 
+        # NEW
+        date=datetime.strptime(
+            data.get("date"),
+            "%Y-%m-%d"
+        ).date(),
+
+        time=datetime.strptime(
+            data.get("time"),
+            "%H:%M:%S"
+        ).time(),
+
         status="Pending"
     )
 
     db.session.add(booking)
+
+    # SLOT BOOKED
+    slot = ConsultantSlot.query.filter_by(
+        consultant_id=data.get("consultant_id"),
+        slot_date=data.get("date"),
+        slot_time=datetime.strptime(
+            data.get("time"),
+            "%H:%M:%S"
+        ).time()
+    ).first()
+
+    if slot:
+        slot.is_booked = True
+
     db.session.commit()
 
     add_activity(
@@ -308,8 +333,16 @@ def get_my_consultations():
             "property_type": b.property_type,
             "city": b.city,
             "consultation_type": b.preferred_consultation_type,
+
+            "date": str(b.date) if b.date else None,
+
+            "time": b.time.strftime("%I:%M %p")
+            if b.time else None,
+
             "status": b.status,
-            "created_at": b.created_at.strftime("%Y-%m-%d %H:%M:%S")
+
+            "created_at":
+                b.created_at.strftime("%Y-%m-%d %H:%M:%S")
         })
 
     return jsonify({
