@@ -18,9 +18,10 @@ def send_property_enquiry_sms(owner_mobile, property_title, customer_mobile):
     url = "https://api.onex-aura.com/api/jsmslist"
 
     message = (
-        f"Dear User, You have received a new enquiry for property "
-        f"{property_title}. Customer Mobile: {customer_mobile} "
-        f"Team Fundsarth"
+        "Dear User, You have received a new enquiry "
+        "for property TEST123. "
+        "Customer Mobile: 9999999999 "
+        "Team Fundsarth"
     )
 
     print("\n========== SMS MESSAGE ==========")
