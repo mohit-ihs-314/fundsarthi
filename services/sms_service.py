@@ -14,12 +14,7 @@ def send_property_enquiry_sms(owner_mobile, property_title, customer_mobile):
     Send SMS to property owner when enquiry is received
     """
 
-    message = (
-        f"Dear User, "
-        f"New enquiry received for property {property_title}. "
-        f"Contact Number: {customer_mobile}. "
-        f"Team Fundsarth"
-    )
+    message = f"Dear User, You have received a new enquiry for property {property_title}. Customer Mobile: {customer_mobile} Team Fundsarth"
 
     payload = {
         "key": SMS_KEY,
