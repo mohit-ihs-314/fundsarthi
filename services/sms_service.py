@@ -44,7 +44,21 @@ def send_property_enquiry_sms(owner_mobile, property_title, customer_mobile):
         print("Property SMS Status:", response.status_code)
         print("Property SMS Response:", response.text)
 
-        return True
+        try:
+            res_json = response.json()
+            print("Parsed Response:", res_json)
+
+            sms_data = res_json.get("smslist", {}).get("sms", [])
+
+            if sms_data:
+                print("SMS Status:", sms_data[0].get("status"))
+                print("SMS Reason:", sms_data[0].get("reason"))
+
+            return res_json
+
+        except Exception as e:
+            print("Response Parse Error:", str(e))
+            return False
 
     except Exception as e:
         print("Property SMS Error:", str(e))

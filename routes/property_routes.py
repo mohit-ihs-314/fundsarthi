@@ -233,6 +233,10 @@ def schedule_visit():
     )
 
     if property:
+        print("Owner Mobile:", property.mobile)
+        print("Property Title:", property.title)
+        print("Customer Mobile:", data.get("mobile"))
+
         send_property_enquiry_sms(
             owner_mobile=property.mobile,
             property_title=property.title,
