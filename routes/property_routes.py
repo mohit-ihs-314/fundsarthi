@@ -233,11 +233,20 @@ def schedule_visit():
     )
 
     if property:
-        send_property_enquiry_sms(
+
+        print("\n========== BEFORE SMS CALL ==========")
+        print("Owner Mobile:", property.mobile)
+        print("Property Title:", property.title)
+        print("Customer Mobile:", data.get("mobile"))
+
+        sms_result = send_property_enquiry_sms(
             owner_mobile=property.mobile,
             property_title=property.title,
             customer_mobile=data.get("mobile")
         )
+
+        print("\n========== SMS RESULT ==========")
+        print(sms_result)
 
     add_activity(
         data.get("mobile"),
