@@ -17,12 +17,7 @@ def send_property_enquiry_sms(owner_mobile, property_title, customer_mobile):
 
     url = "https://api.onex-aura.com/api/jsmslist"
 
-    message = (
-        "Dear User, You have received a new enquiry "
-        "for property TEST123. "
-        "Customer Mobile: 9999999999 "
-        "Team Fundsarth"
-    )
+    message = "Your OTP is 123456 for login authentication. It is valid for 10 minutes. Do not share it with anyone. - Fund Sarthi"
 
     print("\n========== SMS MESSAGE ==========")
     print(message)
@@ -32,10 +27,10 @@ def send_property_enquiry_sms(owner_mobile, property_title, customer_mobile):
         "listsms": [
             {
                 "from": "FSARTH",
-                "to": owner_mobile,
+                "to": "9099096937",
                 "body": message,
                 "entityid": "1001338817429885581",
-                "templateid": "1007091859816289556"
+                "templateid": "1007505525018237305"
             }
         ]
     }
