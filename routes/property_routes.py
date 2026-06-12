@@ -6,6 +6,7 @@ import cloudinary.uploader
 import json
 from sqlalchemy import desc
 from services.activity_service import add_activity
+from services.sms_service import send_property_enquiry_sms
 
 property_bp = Blueprint("property", __name__)
 
@@ -226,6 +227,17 @@ def schedule_visit():
 
     db.session.add(enquiry)
     db.session.commit()
+
+    property = Property.query.get(
+        data.get("property_id")
+    )
+
+    if property:
+        send_property_enquiry_sms(
+            owner_mobile=property.mobile,
+            property_title=property.title,
+            customer_mobile=data.get("mobile")
+        )
 
     add_activity(
         data.get("mobile"),
