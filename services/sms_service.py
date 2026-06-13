@@ -32,7 +32,7 @@ def send_property_enquiry_sms(owner_mobile, property_title, customer_mobile):
                 "to": owner_mobile,
                 "body": message,
                 "entityid": "1001338817429885581",
-                "templateid": "1007091859816289556"
+                "templateid": "1007994383388463369"
             }
         ]
     }
