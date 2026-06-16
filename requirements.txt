@@ -5,3 +5,4 @@ gunicorn==25.3.0
 cloudinary==1.44.2
 pymysql==1.1.1
 requests
+firebase-admin==5.0.0
