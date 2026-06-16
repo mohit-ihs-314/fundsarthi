@@ -183,3 +183,35 @@ def save_fcm_token():
     return jsonify({
         "status": "success"
     })
+
+@loan_bp.route("/send-notification", methods=["POST"])
+def send_notification():
+
+    data = request.json
+
+    user = User.query.filter_by(
+        mobile=data["mobile"]
+    ).first()
+
+    if not user:
+        return jsonify({
+            "status": "error",
+            "message": "User not found"
+        }), 404
+
+    if not user.fcm_token:
+        return jsonify({
+            "status": "error",
+            "message": "No FCM token"
+        }), 400
+
+    result = send_push(
+        user.fcm_token,
+        data["title"],
+        data["body"]
+    )
+
+    return jsonify({
+        "status": "success",
+        "result": str(result)
+    })
