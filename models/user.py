@@ -9,3 +9,4 @@ class User(db.Model):
     city = db.Column(db.String(50))
     employment = db.Column(db.String(50))
     income = db.Column(db.String(20))
+    fcm_token = db.Column(db.Text, nullable=True)

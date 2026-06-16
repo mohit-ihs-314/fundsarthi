@@ -4,6 +4,7 @@ from extensions import db
 from services.loan_service import apply_loan_service
 from models.user import User
 from services.activity_service import add_activity
+from services.firebase_service import send_push
 
 loan_bp = Blueprint("loan", __name__)
 
@@ -92,6 +93,18 @@ def update_status():
         f"Your loan status changed to {loan.status}"
     )
 
+    user = User.query.filter_by(
+        mobile=loan.mobile
+    ).first()
+
+    if user and user.fcm_token:
+
+        send_push(
+            user.fcm_token,
+            "Loan Status Updated",
+            f"Your loan status is now {loan.status}"
+        )
+
     return jsonify({"status": "success"})
 
 @loan_bp.route("/track-loan/<application_id>", methods=["GET"])
@@ -142,4 +155,27 @@ def my_loans():
                 "date": str(loan.created_at) if hasattr(loan, "created_at") else ""
             } for loan in loans
         ]
+    })
+
+
+@loan_bp.route("/save-fcm-token", methods=["POST"])
+def save_fcm_token():
+
+    data = request.json
+
+    user = User.query.filter_by(
+        mobile=data["mobile"]
+    ).first()
+
+    if not user:
+        return jsonify({
+            "status": "error"
+        }), 404
+
+    user.fcm_token = data["fcm_token"]
+
+    db.session.commit()
+
+    return jsonify({
+        "status": "success"
     })
