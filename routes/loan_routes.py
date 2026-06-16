@@ -174,8 +174,9 @@ def save_fcm_token():
         mobile=data["mobile"]
     ).first()
 
+    print("USER FOUND:", user)
+
     if not user:
-        print("USER NOT FOUND")
         return jsonify({
             "status": "error"
         }), 404
@@ -184,7 +185,7 @@ def save_fcm_token():
 
     db.session.commit()
 
-    print("TOKEN SAVED:", user.fcm_token)
+    print("TOKEN SAVED")
 
     return jsonify({
         "status": "success"
