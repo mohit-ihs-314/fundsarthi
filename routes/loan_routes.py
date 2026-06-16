@@ -97,15 +97,19 @@ def update_status():
         mobile=loan.mobile
     ).first()
 
+    print("USER:", user.mobile)
+    print("TOKEN:", user.fcm_token)
+    print("STATUS:", loan.status)
+
     if user and user.fcm_token:
 
-        send_push(
+        result = send_push(
             user.fcm_token,
             "Loan Status Updated",
             f"Your loan status is now {loan.status}"
         )
 
-    return jsonify({"status": "success"})
+        print("FCM RESULT:", result)
 
 @loan_bp.route("/track-loan/<application_id>", methods=["GET"])
 def track_loan(application_id):
