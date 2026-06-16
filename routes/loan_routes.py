@@ -167,11 +167,15 @@ def save_fcm_token():
 
     data = request.json
 
+    print("SAVE TOKEN API CALLED")
+    print(data)
+
     user = User.query.filter_by(
         mobile=data["mobile"]
     ).first()
 
     if not user:
+        print("USER NOT FOUND")
         return jsonify({
             "status": "error"
         }), 404
@@ -179,6 +183,8 @@ def save_fcm_token():
     user.fcm_token = data["fcm_token"]
 
     db.session.commit()
+
+    print("TOKEN SAVED:", user.fcm_token)
 
     return jsonify({
         "status": "success"
