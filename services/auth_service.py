@@ -178,6 +178,8 @@ def update_profile_service(data):
     user.city = data.get("city")
     user.employment = data.get("employment")
     user.income = data.get("income")
+    if data.get("fcm_token"):
+        user.fcm_token = data.get("fcm_token")
 
     db.session.add(user)
     db.session.commit()
