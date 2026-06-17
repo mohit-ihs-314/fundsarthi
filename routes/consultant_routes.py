@@ -8,6 +8,9 @@ import json
 from models.consultant_slot import ConsultantSlot
 from datetime import datetime
 from services.activity_service import add_activity
+from models.user import User
+from services.firebase_service import send_push
+
 
 consultant_bp = Blueprint("Consultant", __name__)
 
@@ -229,6 +232,18 @@ def book_consultation():
 
     db.session.commit()
 
+    consultant_user = User.query.filter_by(
+        mobile=data.get("consultant_phone")
+    ).first()
+
+    if consultant_user and consultant_user.fcm_token:
+
+        send_push(
+            consultant_user.fcm_token,
+            "New Consultation Request",
+            f"{data.get('customer_name')} has requested a consultation."
+        )
+
     add_activity(
         data.get("user_mobile"),
         "consultation",
@@ -432,6 +447,29 @@ def update_booking_status():
     booking.status = data.get("status")
     db.session.commit()
 
+    user = User.query.filter_by(
+        mobile=booking.user_mobile
+    ).first()
+
+    if user and user.fcm_token:
+
+        title = "Consultation Status Updated"
+
+        if booking.status.lower() == "confirmed":
+            body = f"Your consultation booking {booking.booking_id} has been approved."
+
+        elif booking.status.lower() == "rejected":
+            body = f"Your consultation booking {booking.booking_id} has been rejected."
+
+        else:
+            body = f"Booking status changed to {booking.status}"
+
+        send_push(
+            user.fcm_token,
+            title,
+            body
+        )
+
     add_activity(
         booking.user_mobile,
         "consultation_status",
@@ -454,6 +492,18 @@ def reschedule_booking():
     booking.time = data.get("time")
 
     db.session.commit()
+
+    user = User.query.filter_by(
+        mobile=booking.user_mobile
+    ).first()
+
+    if user and user.fcm_token:
+
+        send_push(
+            user.fcm_token,
+            "Consultation Rescheduled",
+            f"Your consultation has been moved to {booking.date}."
+        )
 
     add_activity(
         booking.user_mobile,
