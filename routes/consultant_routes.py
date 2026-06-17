@@ -578,7 +578,10 @@ def update_booking_status():
             result = send_push(
                 user.fcm_token,
                 title,
-                body
+                body,
+                {
+                    "route": "/my-consultations"
+                }
             )
 
             print("PUSH SENT SUCCESSFULLY")

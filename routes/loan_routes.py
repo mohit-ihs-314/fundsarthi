@@ -106,7 +106,11 @@ def update_status():
         result = send_push(
             user.fcm_token,
             "Loan Status Updated",
-            f"Your loan status is now {loan.status}"
+            f"Your loan status is now {loan.status}",
+            {
+                "route": "/my-applications",
+                "loan_id": str(loan.id)
+            }
         )
 
         print("FCM RESULT:", result)
