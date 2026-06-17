@@ -437,38 +437,107 @@ def track_consultation(booking_id):
 
 @consultant_bp.route("/update-booking-status", methods=["POST"])
 def update_booking_status():
+
+    print("\n==============================")
+    print("UPDATE BOOKING STATUS CALLED")
+    print("==============================")
+
     data = request.json
 
-    booking = Booking.query.filter_by(booking_id=data.get("booking_id")).first()
+    print("REQUEST DATA:", data)
+
+    booking = Booking.query.filter_by(
+        booking_id=data.get("booking_id")
+    ).first()
 
     if not booking:
+        print("BOOKING NOT FOUND")
         return jsonify({"status": "error"}), 404
 
+    print("BOOKING FOUND:", booking.booking_id)
+    print("OLD STATUS:", booking.status)
+
     booking.status = data.get("status")
+
     db.session.commit()
+
+    print("NEW STATUS:", booking.status)
+    print("BOOKING UPDATED SUCCESSFULLY")
+
+    # ====================================
+    # SEND PUSH TO CUSTOMER
+    # ====================================
 
     user = User.query.filter_by(
         mobile=booking.user_mobile
     ).first()
 
-    if user and user.fcm_token:
+    print("CUSTOMER MOBILE:", booking.user_mobile)
+    print("USER FOUND:", user)
+
+    if not user:
+        print("USER NOT FOUND")
+
+    elif not user.fcm_token:
+        print("USER HAS NO FCM TOKEN")
+
+    else:
+
+        print("FCM TOKEN FOUND")
+        print(user.fcm_token[:50] + "...")
 
         title = "Consultation Status Updated"
 
         if booking.status.lower() == "confirmed":
-            body = f"Your consultation booking {booking.booking_id} has been approved."
+
+            body = (
+                f"Your consultation booking "
+                f"{booking.booking_id} has been approved."
+            )
 
         elif booking.status.lower() == "rejected":
-            body = f"Your consultation booking {booking.booking_id} has been rejected."
+
+            body = (
+                f"Your consultation booking "
+                f"{booking.booking_id} has been rejected."
+            )
+
+        elif booking.status.lower() == "rescheduled":
+
+            body = (
+                f"Your consultation booking "
+                f"{booking.booking_id} has been rescheduled."
+            )
 
         else:
-            body = f"Booking status changed to {booking.status}"
 
-        send_push(
-            user.fcm_token,
-            title,
-            body
-        )
+            body = (
+                f"Booking status changed to "
+                f"{booking.status}"
+            )
+
+        print("TITLE:", title)
+        print("BODY:", body)
+
+        try:
+
+            result = send_push(
+                user.fcm_token,
+                title,
+                body
+            )
+
+            print("PUSH SENT SUCCESSFULLY")
+            print("FIREBASE RESPONSE:", result)
+
+        except Exception as e:
+
+            print("PUSH ERROR")
+            print(str(e))
+
+    # ====================================
+    # ACTIVITY LOG
+    # ====================================
 
     add_activity(
         booking.user_mobile,
@@ -477,7 +546,11 @@ def update_booking_status():
         f"Booking status changed to {booking.status}"
     )
 
-    return jsonify({"status": "success"})
+    print("ACTIVITY ADDED")
+
+    return jsonify({
+        "status": "success"
+    })
 
 @consultant_bp.route("/reschedule-booking", methods=["POST"])
 def reschedule_booking():
