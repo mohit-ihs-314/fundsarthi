@@ -17,14 +17,22 @@ if not firebase_admin._apps:
     firebase_admin.initialize_app(cred)
 
 
-def send_push(token, title, body):
+def send_push(
+    token,
+    title,
+    body,
+    data=None
+):
 
     message = messaging.Message(
+        token=token,
+
         notification=messaging.Notification(
             title=title,
             body=body
         ),
-        token=token
+
+        data=data or {}
     )
 
     return messaging.send(message)
