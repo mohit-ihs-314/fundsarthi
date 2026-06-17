@@ -167,7 +167,13 @@ def get_consultant(id):
 @consultant_bp.route("/book-consultation", methods=["POST"])
 def book_consultation():
 
+    print("\n======================")
+    print("BOOK CONSULTATION")
+    print("======================")
+
     data = request.json
+
+    print("REQUEST DATA:", data)
 
     booking_id = "VB" + str(
         random.randint(10000000, 99999999)
@@ -201,7 +207,6 @@ def book_consultation():
 
         property_size=data.get("propertySize"),
 
-        # NEW
         date=datetime.strptime(
             data.get("date"),
             "%Y-%m-%d"
@@ -217,7 +222,6 @@ def book_consultation():
 
     db.session.add(booking)
 
-    # SLOT BOOKED
     slot = ConsultantSlot.query.filter_by(
         consultant_id=data.get("consultant_id"),
         slot_date=data.get("date"),
@@ -232,17 +236,67 @@ def book_consultation():
 
     db.session.commit()
 
-    consultant_user = User.query.filter_by(
-        mobile=data.get("consultant_phone")
-    ).first()
+    print("BOOKING CREATED:", booking_id)
 
-    if consultant_user and consultant_user.fcm_token:
+    # ==========================================
+    # SEND NOTIFICATION TO CONSULTANT
+    # ==========================================
 
-        send_push(
-            consultant_user.fcm_token,
-            "New Consultation Request",
-            f"{data.get('customer_name')} has requested a consultation."
-        )
+    consultant = Consultant.query.get(
+        data.get("consultant_id")
+    )
+
+    print("CONSULTANT:", consultant)
+
+    if not consultant:
+
+        print("CONSULTANT NOT FOUND")
+
+    else:
+
+        print("CONSULTANT ID:", consultant.id)
+        print("CONSULTANT PHONE:", consultant.phone)
+
+        consultant_user = User.query.filter_by(
+            mobile=consultant.phone
+        ).first()
+
+        print("CONSULTANT USER:", consultant_user)
+
+        if not consultant_user:
+
+            print("CONSULTANT USER NOT FOUND")
+
+        elif not consultant_user.fcm_token:
+
+            print("CONSULTANT HAS NO FCM TOKEN")
+
+        else:
+
+            print("CONSULTANT TOKEN FOUND")
+            print(
+                consultant_user.fcm_token[:50] + "..."
+            )
+
+            try:
+
+                result = send_push(
+                    consultant_user.fcm_token,
+                    "New Consultation Request",
+                    f"{data.get('customer_name')} has requested a consultation."
+                )
+
+                print("CONSULTANT PUSH SENT")
+                print("FIREBASE RESPONSE:", result)
+
+            except Exception as e:
+
+                print("CONSULTANT PUSH ERROR")
+                print(str(e))
+
+    # ==========================================
+    # ACTIVITY
+    # ==========================================
 
     add_activity(
         data.get("user_mobile"),
