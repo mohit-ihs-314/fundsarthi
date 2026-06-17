@@ -632,14 +632,14 @@ def reschedule_booking():
         send_push(
             user.fcm_token,
             "Consultation Rescheduled",
-            f"Your consultation has been moved to {booking.date}."
+            f"Your consultation has been moved to {booking.date} {booking.time}."
         )
 
     add_activity(
         booking.user_mobile,
         "consultation_reschedule",
         "Consultation Rescheduled",
-        f"Consultation moved to {booking.date}"
+        f"Consultation moved to {booking.date} {booking.time}"
     )
 
     return jsonify({"status": "success"})
