@@ -174,6 +174,8 @@ def nearby_properties():
     lat = request.args.get("lat", type=float)
     lng = request.args.get("lng", type=float)
 
+    print("USER LOCATION:", lat, lng)
+
     if lat is None or lng is None:
         return jsonify({
             "status": "error",
@@ -196,7 +198,12 @@ def nearby_properties():
             p.longitude
         )
 
-        # Only within 10 km
+        # 👇 ADD THESE 4 LINES
+        print("----------------------------")
+        print("Property:", p.title)
+        print("Coords:", p.latitude, p.longitude)
+        print("Distance:", round(distance, 2), "km")
+
         if distance <= 10:
 
             try:
@@ -216,6 +223,11 @@ def nearby_properties():
                 "distance": round(distance, 2),
                 "features": features
             })
+
+    # 👇 ADD THESE
+    print("====================")
+    print("Nearby Count:", len(nearby))
+    print("====================")
 
     nearby.sort(key=lambda x: x["distance"])
 
