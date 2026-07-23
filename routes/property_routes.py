@@ -7,8 +7,26 @@ import json
 from sqlalchemy import desc
 from services.activity_service import add_activity
 from services.sms_service import send_property_enquiry_sms
+import math
 
 property_bp = Blueprint("property", __name__)
+
+def haversine(lat1, lon1, lat2, lon2):
+    R = 6371  # km
+
+    dLat = math.radians(lat2 - lat1)
+    dLon = math.radians(lon2 - lon1)
+
+    a = (
+        math.sin(dLat / 2) ** 2
+        + math.cos(math.radians(lat1))
+        * math.cos(math.radians(lat2))
+        * math.sin(dLon / 2) ** 2
+    )
+
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    return R * c
 
 def generate_property_id():
     return "PROP" + str(random.randint(10000000, 99999999))
@@ -149,6 +167,63 @@ def get_properties():
         })
 
     return jsonify(result)
+
+@property_bp.route("/properties/nearby", methods=["GET"])
+def nearby_properties():
+
+    lat = request.args.get("lat", type=float)
+    lng = request.args.get("lng", type=float)
+
+    if lat is None or lng is None:
+        return jsonify({
+            "status": "error",
+            "message": "Latitude & Longitude required"
+        }), 400
+
+    properties = Property.query.filter_by(status="approved").all()
+
+    nearby = []
+
+    for p in properties:
+
+        if not p.latitude or not p.longitude:
+            continue
+
+        distance = haversine(
+            lat,
+            lng,
+            p.latitude,
+            p.longitude
+        )
+
+        # Only within 10 km
+        if distance <= 10:
+
+            try:
+                features = json.loads(p.features) if p.features else {}
+            except:
+                features = {}
+
+            nearby.append({
+                "id": p.id,
+                "title": p.title,
+                "location": f"{p.locality}, {p.city}",
+                "price": p.price,
+                "beds": p.bedrooms,
+                "baths": p.bathrooms,
+                "area": p.size,
+                "image": json.loads(p.photos)[0] if p.photos else "",
+                "distance": round(distance, 2),
+                "features": features
+            })
+
+    nearby.sort(key=lambda x: x["distance"])
+
+    return jsonify({
+        "status": "success",
+        "count": len(nearby),
+        "data": nearby
+    })
 
 @property_bp.route("/property/<int:id>", methods=["GET"])
 def get_property(id):

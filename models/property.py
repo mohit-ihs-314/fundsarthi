@@ -10,6 +10,8 @@ class Property(db.Model):
     property_type = db.Column(db.String(50))
     city = db.Column(db.String(100))
     locality = db.Column(db.String(255))
+    latitude = db.Column(db.Float)
+    longitude = db.Column(db.Float)
 
     price = db.Column(db.String(50))
     size = db.Column(db.String(50))
