@@ -150,7 +150,11 @@ def get_properties():
         result.append({
             "id": p.id,
             "title": p.title,
+
+            "city": p.city,
+            "locality": p.locality,
             "location": f"{p.locality}, {p.city}",
+
             "price": p.price,
             "beds": p.bedrooms,
             "baths": p.bathrooms,
@@ -159,10 +163,7 @@ def get_properties():
             "type": "buy",
             "image": json.loads(p.photos)[0] if p.photos else "",
             "mobile": p.mobile,
-
-            # ✅ FIXED
             "listing_type": p.listing_type,
-
             "features": features
         })
 
