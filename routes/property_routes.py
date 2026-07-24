@@ -185,50 +185,53 @@ def nearby_properties():
 
     properties = Property.query.filter_by(status="approved").all()
 
+    # Increase radius until enough properties are found
+    radius = 10
+    max_radius = 100
+    required_count = 20
+
     nearby = []
 
-    for p in properties:
+    while radius <= max_radius:
 
-        if not p.latitude or not p.longitude:
-            continue
+        nearby = []
 
-        distance = haversine(
-            lat,
-            lng,
-            p.latitude,
-            p.longitude
-        )
+        for p in properties:
 
-        # 👇 ADD THESE 4 LINES
-        print("----------------------------")
-        print("Property:", p.title)
-        print("Coords:", p.latitude, p.longitude)
-        print("Distance:", round(distance, 2), "km")
+            if not p.latitude or not p.longitude:
+                continue
 
-        if distance <= 10:
+            distance = haversine(
+                lat,
+                lng,
+                p.latitude,
+                p.longitude
+            )
 
-            try:
-                features = json.loads(p.features) if p.features else {}
-            except:
-                features = {}
+            if distance <= radius:
 
-            nearby.append({
-                "id": p.id,
-                "title": p.title,
-                "location": f"{p.locality}, {p.city}",
-                "price": p.price,
-                "beds": p.bedrooms,
-                "baths": p.bathrooms,
-                "area": p.size,
-                "image": json.loads(p.photos)[0] if p.photos else "",
-                "distance": round(distance, 2),
-                "features": features
-            })
+                try:
+                    features = json.loads(p.features) if p.features else {}
+                except:
+                    features = {}
 
-    # 👇 ADD THESE
-    print("====================")
-    print("Nearby Count:", len(nearby))
-    print("====================")
+                nearby.append({
+                    "id": p.id,
+                    "title": p.title,
+                    "location": f"{p.locality}, {p.city}",
+                    "price": p.price,
+                    "beds": p.bedrooms,
+                    "baths": p.bathrooms,
+                    "area": p.size,
+                    "image": json.loads(p.photos)[0] if p.photos else "",
+                    "distance": round(distance, 2),
+                    "features": features
+                })
+
+        if len(nearby) >= required_count:
+            break
+
+        radius += 10
 
     nearby.sort(key=lambda x: x["distance"])
 
