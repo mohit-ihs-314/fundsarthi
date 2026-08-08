@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from extensions import db
 from sqlalchemy.dialects.mysql import JSON
 
@@ -15,6 +17,12 @@ class Loan(db.Model):
     extra_data = db.Column(JSON)
     customer_name = db.Column(db.String(100))
     mobile = db.Column(db.String(15))
+
+    created_at = db.Column(
+        db.DateTime,
+        default=datetime.utcnow,
+        nullable=False
+    )
 
 class LoanStep(db.Model):
     __tablename__ = "loan_steps"
