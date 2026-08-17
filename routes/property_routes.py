@@ -40,7 +40,11 @@ def add_property():
     new_property = Property(
         property_id=property_id,
         title=data.get("title"),
-        property_type=data.get("propertyType"),
+        property_type=(
+            data.get("category")
+            or data.get("propertyType")
+            or "residential"
+        ).lower().strip(),
         purpose=data.get("purpose"),
         city=data.get("city"),
         locality=data.get("locality"),
@@ -151,6 +155,8 @@ def get_properties():
             "id": p.id,
             "title": p.title,
 
+            "property_type": p.property_type,
+
             "city": p.city,
             "locality": p.locality,
             "location": f"{p.locality}, {p.city}",
@@ -225,7 +231,8 @@ def nearby_properties():
                     "area": p.size,
                     "image": json.loads(p.photos)[0] if p.photos else "",
                     "distance": round(distance, 2),
-                    "features": features
+                    "features": features,
+                    "property_type": p.property_type,
                 })
 
         if len(nearby) >= required_count:
@@ -278,7 +285,7 @@ def get_property(id):
             "baths": property.bathrooms,
             "area": property.size,
             "description": property.description,
-
+            "property_type": property.property_type,
             "photos": json.loads(property.photos) if property.photos else [],
             "videos": json.loads(property.videos) if property.videos else [],
             "floor_plans": json.loads(property.floor_plans) if property.floor_plans else [],
@@ -295,6 +302,7 @@ def get_property(id):
             "power_backup": extra.get("power_backup"),
             "construction_status": extra.get("construction_status"),
             "possession": extra.get("possession"),
+            "builder": extra.get("builder"),
 
             "name": property.name,
             "mobile": property.mobile,
