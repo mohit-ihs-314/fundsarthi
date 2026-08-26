@@ -4,7 +4,7 @@ from extensions import db
 import random
 import cloudinary.uploader
 import json
-from sqlalchemy import desc
+from sqlalchemy import desc, or_
 from services.activity_service import add_activity
 from services.sms_service import send_property_enquiry_sms
 import math
@@ -140,40 +140,228 @@ def upload_image():
     
 @property_bp.route("/properties", methods=["GET"])
 def get_properties():
-    properties = Property.query.filter_by(status="approved").all()
+
+    # =========================
+    # PAGINATION
+    # =========================
+
+    page = request.args.get("page", 1, type=int)
+    limit = request.args.get("limit", 20, type=int)
+
+    # Safety limits
+    page = max(page, 1)
+    limit = min(max(limit, 1), 50)
+
+    # =========================
+    # FILTERS
+    # =========================
+
+    category = request.args.get("category")
+    city = request.args.get("city")
+    locality = request.args.get("locality")
+    builder = request.args.get("builder")
+    bhk = request.args.get("bhk")
+
+    min_price = request.args.get("min_price", type=float)
+    max_price = request.args.get("max_price", type=float)
+
+    search = request.args.get("search")
+    sort = request.args.get("sort")
+
+    # =========================
+    # BASE QUERY
+    # =========================
+
+    query = Property.query.filter(
+        Property.status == "approved"
+    )
+
+    # =========================
+    # CATEGORY
+    # =========================
+
+    if category:
+        query = query.filter(
+            Property.property_type.ilike(f"%{category}%")
+        )
+
+    # =========================
+    # CITY
+    # =========================
+
+    if city:
+        query = query.filter(
+            Property.city.ilike(f"%{city}%")
+        )
+
+    # =========================
+    # LOCALITY
+    # =========================
+
+    if locality:
+        query = query.filter(
+            Property.locality.ilike(f"%{locality}%")
+        )
+
+    # =========================
+    # SEARCH
+    # =========================
+
+    if search:
+
+        search_term = f"%{search}%"
+
+        query = query.filter(
+            or_(
+                Property.title.ilike(search_term),
+                Property.city.ilike(search_term),
+                Property.locality.ilike(search_term)
+            )
+        )
+
+    # =========================
+    # PRICE
+    # =========================
+
+    # IMPORTANT:
+    # This assumes Property.price is numeric.
+    #
+    # If price is stored like "2.5 Cr",
+    # we should change the database model
+    # to store numeric price separately.
+
+    if min_price is not None:
+        query = query.filter(
+            Property.price >= min_price
+        )
+
+    if max_price is not None:
+        query = query.filter(
+            Property.price <= max_price
+        )
+
+    # =========================
+    # SORT
+    # =========================
+
+    if sort == "lowToHigh":
+
+        query = query.order_by(
+            Property.price.asc()
+        )
+
+    elif sort == "highToLow":
+
+        query = query.order_by(
+            Property.price.desc()
+        )
+
+    else:
+
+        query = query.order_by(
+            Property.id.desc()
+        )
+
+    # =========================
+    # PAGINATION
+    # =========================
+
+    pagination = query.paginate(
+        page=page,
+        per_page=limit,
+        error_out=False
+    )
+
+    properties = pagination.items
+
+    # =========================
+    # RESPONSE
+    # =========================
 
     result = []
+
     for p in properties:
 
-        # ✅ SAFE PARSE FEATURES
+        # SAFE FEATURES PARSE
         try:
-            features = json.loads(p.features) if p.features else {}
-        except:
+            features = (
+                json.loads(p.features)
+                if p.features
+                else {}
+            )
+        except Exception:
             features = {}
 
+        # SAFE PHOTOS PARSE
+        try:
+            photos = (
+                json.loads(p.photos)
+                if p.photos
+                else []
+            )
+        except Exception:
+            photos = []
+
         result.append({
+
             "id": p.id,
+
             "title": p.title,
 
             "property_type": p.property_type,
 
             "city": p.city,
+
             "locality": p.locality,
+
             "location": f"{p.locality}, {p.city}",
 
             "price": p.price,
+
             "beds": p.bedrooms,
+
             "baths": p.bathrooms,
+
             "area": p.size,
+
             "purpose": p.purpose,
+
             "type": "buy",
-            "image": json.loads(p.photos)[0] if p.photos else "",
+
+            "image": (
+                photos[0]
+                if photos
+                else ""
+            ),
+
             "mobile": p.mobile,
+
             "listing_type": p.listing_type,
+
             "features": features
         })
 
-    return jsonify(result)
+    return jsonify({
+
+        "status": "success",
+
+        "data": result,
+
+        "pagination": {
+
+            "page": pagination.page,
+
+            "limit": pagination.per_page,
+
+            "total": pagination.total,
+
+            "pages": pagination.pages,
+
+            "has_next": pagination.has_next,
+
+            "has_prev": pagination.has_prev
+        }
+    })
 
 @property_bp.route("/properties/nearby", methods=["GET"])
 def nearby_properties():
