@@ -190,7 +190,10 @@ def get_properties():
 
     if category:
         query = query.filter(
-            Property.property_type.ilike(f"%{category}%")
+            or_(
+                Property.category.ilike(f"%{category}%"),
+                Property.property_type.ilike(f"%{category}%")
+            )
         )
 
     # =========================
