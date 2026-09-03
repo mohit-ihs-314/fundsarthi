@@ -40,14 +40,19 @@ def add_property():
     new_property = Property(
         property_id=property_id,
         title=data.get("title"),
+
+        # Broad property type
         property_type=(
-            data.get("category")
-            or data.get("propertyType")
+            data.get("propertyType")
+            or data.get("category")
             or "residential"
         ).lower().strip(),
+
         purpose=data.get("purpose"),
         city=data.get("city"),
         locality=data.get("locality"),
+        latitude=data.get("latitude"),
+        longitude=data.get("longitude"),
         price=data.get("price"),
         size=data.get("size"),
         bedrooms=data.get("bedrooms"),
@@ -58,17 +63,20 @@ def add_property():
         email=data.get("email"),
         listing_type="normal",
 
-        # ✅ MEDIA
         photos=json.dumps(data.get("photos") or []),
         videos=json.dumps(data.get("videos") or []),
         floor_plans=json.dumps(data.get("floorPlans") or []),
 
-        # ✅ 🔥 MAIN FIX (STORE EVERYTHING HERE)
         features=json.dumps({
             "highlights": data.get("features", {}).get("highlights", []),
             "facilities": data.get("features", {}).get("facilities", []),
 
             "extra": {
+                # IMPORTANT
+                "category": data.get("category"),
+
+                "property_type": data.get("propertyType"),
+
                 "project_name": data.get("projectName"),
                 "balconies": data.get("balconies"),
                 "floor_number": data.get("floorNumber"),
@@ -282,25 +290,79 @@ def get_properties():
 
     for p in properties:
 
+        # =========================
         # SAFE FEATURES PARSE
+        # =========================
+
         try:
-            features = (
-                json.loads(p.features)
-                if p.features
-                else {}
-            )
+            features = json.loads(p.features) if p.features else {}
         except Exception:
             features = {}
 
+        if not isinstance(features, dict):
+            features = {}
+
+        # Make sure extra exists
+        extra = features.get("extra", {})
+
+        if not isinstance(extra, dict):
+            extra = {}
+
+        features["extra"] = extra
+
+        # =========================
+        # CATEGORY
+        # =========================
+
+        # First try category saved inside features
+        category_value = (
+            extra.get("category")
+            or getattr(p, "category", None)
+            or ""
+        )
+
+        # Clean category
+        category_value = str(category_value).strip()
+
+        # If category is missing, try to determine it
+        # from property_type for old records
+        property_type_value = str(
+            p.property_type or ""
+        ).strip()
+
+        property_type_lower = property_type_value.lower()
+
+        if not category_value:
+
+            if "sco" in property_type_lower and "plot" in property_type_lower:
+                category_value = "SCO Plot"
+
+            elif "residential" in property_type_lower and "plot" in property_type_lower:
+                category_value = "Residential Plot"
+
+            elif property_type_lower in [
+                "plot",
+                "land",
+                "land / plot",
+                "land/plot"
+            ]:
+                category_value = "Residential Plot"
+
+        # Put category back into features too
+        extra["category"] = category_value
+
+        # =========================
         # SAFE PHOTOS PARSE
+        # =========================
+
         try:
-            photos = (
-                json.loads(p.photos)
-                if p.photos
-                else []
-            )
+            photos = json.loads(p.photos) if p.photos else []
         except Exception:
             photos = []
+
+        # =========================
+        # RESPONSE
+        # =========================
 
         result.append({
 
@@ -308,7 +370,12 @@ def get_properties():
 
             "title": p.title,
 
+            # Broad property type
             "property_type": p.property_type,
+
+            # IMPORTANT
+            # Frontend needs this
+            "category": category_value,
 
             "city": p.city,
 
@@ -328,11 +395,7 @@ def get_properties():
 
             "type": "buy",
 
-            "image": (
-                photos[0]
-                if photos
-                else ""
-            ),
+            "image": photos[0] if photos else "",
 
             "mobile": p.mobile,
 
@@ -408,7 +471,12 @@ def nearby_properties():
                     features = json.loads(p.features) if p.features else {}
                 except:
                     features = {}
-
+                extra = features.setdefault("extra", {})
+                category = (
+                    extra.get("category")
+                    or getattr(p, "category", None)
+                    or ""
+                )
                 nearby.append({
                     "id": p.id,
                     "title": p.title,
