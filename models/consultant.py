@@ -15,15 +15,19 @@ class Consultant(db.Model):
     bio = db.Column(db.Text)
     phone = db.Column(db.String(20))
     photo = db.Column(db.Text)
+
     consultation_fee = db.Column(
         db.Integer,
         default=500
     )
 
-    # ✅ NEW FIELDS
     certificate = db.Column(db.Text)
     govt_id = db.Column(db.Text)
     address = db.Column(db.Text)
+
+    # 📍 LOCATION
+    latitude = db.Column(db.Float, nullable=True)
+    longitude = db.Column(db.Float, nullable=True)
 
     status = db.Column(db.String(20), default="pending")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

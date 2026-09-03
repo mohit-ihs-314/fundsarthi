@@ -10,11 +10,52 @@ from datetime import datetime
 from services.activity_service import add_activity
 from models.user import User
 from services.firebase_service import send_push
+import requests
 
 
 consultant_bp = Blueprint("Consultant", __name__)
 
 @consultant_bp.route("/apply-consultant", methods=["POST"])
+def get_coordinates(address, city):
+    try:
+        query = f"{address}, {city}, India"
+
+        response = requests.get(
+            "https://nominatim.openstreetmap.org/search",
+            params={
+                "q": query,
+                "format": "json",
+                "limit": 1
+            },
+            headers={
+                "User-Agent": "FundsArthi/1.0"
+            },
+            timeout=10
+        )
+
+        if response.status_code != 200:
+            print("GEOCODING ERROR:", response.status_code)
+            return None, None
+
+        results = response.json()
+
+        if not results:
+            print("LOCATION NOT FOUND:", query)
+            return None, None
+
+        latitude = float(results[0]["lat"])
+        longitude = float(results[0]["lon"])
+
+        print("📍 LOCATION FOUND:", query)
+        print("LAT:", latitude)
+        print("LNG:", longitude)
+
+        return latitude, longitude
+
+    except Exception as e:
+        print("🔥 GEOCODING ERROR:", str(e))
+        return None, None
+
 def apply_consultant():
     try:
         data = request.json
@@ -35,11 +76,25 @@ def apply_consultant():
         # ✅ GENERATE UNIQUE CONSULTANT ID
         consultant_id = f"CONS{random.randint(100000,999999)}{int(datetime.utcnow().timestamp())}"
 
+        # 📍 GET LOCATION AUTOMATICALLY
+        address = data.get("address")
+        city = data.get("city")
+
+        latitude, longitude = get_coordinates(
+            address,
+            city
+        )
+
         consultant = Consultant(
             consultant_id=consultant_id,
             full_name=data.get("fullName"),
-            city=data.get("city"),
-            address=data.get("address"),
+            city=city,
+            address=address,
+
+            # 📍 SAVE COORDINATES
+            latitude=latitude,
+            longitude=longitude,
+
             expertise=json.dumps(data.get("expertise", [])),
             experience=experience,
             languages=data.get("languages"),
@@ -125,13 +180,19 @@ def get_consultants():
             "name": c.full_name,
             "image": c.photo,
             "experience": f"{c.experience} years",
-            "specialization": ", ".join(json.loads(c.expertise)) if c.expertise else "",
+            "specialization": ", ".join(
+                json.loads(c.expertise)
+            ) if c.expertise else "",
             "languages": c.languages.split(",") if c.languages else [],
-            "rating": 4.5,  # temp (later DB se)
+            "rating": 4.5,
             "reviews": 0,
             "location": c.address if c.address else c.city,
             "consultation_fee": c.consultation_fee,
-            "verified": True
+            "verified": True,
+
+            # 📍 LOCATION
+            "latitude": c.latitude,
+            "longitude": c.longitude
         })
 
     return jsonify({
@@ -153,6 +214,8 @@ def get_consultant(id):
             "full_name": consultant.full_name,
             "city": consultant.city,
             "address": consultant.address,
+            "latitude": consultant.latitude,
+            "longitude": consultant.longitude,
             "expertise": consultant.expertise,
             "experience": consultant.experience,
             "languages": consultant.languages,
