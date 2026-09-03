@@ -15,114 +15,276 @@ import requests
 
 consultant_bp = Blueprint("Consultant", __name__)
 
-@consultant_bp.route("/apply-consultant", methods=["POST"])
+
+# ============================================================
+# GEOCODING HELPER
+# ============================================================
+
 def get_coordinates(address, city):
     try:
-        query = f"{address}, {city}, India"
+        if not address and not city:
+            print("⚠️ No address/city provided for geocoding")
+            return None, None
+
+        query = f"{address or ''}, {city or ''}, India"
+
+        print("📍 GEOCODING:", query)
 
         response = requests.get(
             "https://nominatim.openstreetmap.org/search",
             params={
                 "q": query,
                 "format": "json",
-                "limit": 1
+                "limit": 1,
             },
             headers={
-                "User-Agent": "FundsArthi/1.0"
+                "User-Agent": "FundsArthi/1.0",
             },
-            timeout=10
+            timeout=10,
         )
 
         if response.status_code != 200:
-            print("GEOCODING ERROR:", response.status_code)
+            print(
+                "GEOCODING HTTP ERROR:",
+                response.status_code
+            )
             return None, None
 
         results = response.json()
 
         if not results:
-            print("LOCATION NOT FOUND:", query)
+            print(
+                "⚠️ LOCATION NOT FOUND:",
+                query
+            )
             return None, None
 
         latitude = float(results[0]["lat"])
         longitude = float(results[0]["lon"])
 
-        print("📍 LOCATION FOUND:", query)
+        print("✅ LOCATION FOUND")
         print("LAT:", latitude)
         print("LNG:", longitude)
 
         return latitude, longitude
 
     except Exception as e:
-        print("🔥 GEOCODING ERROR:", str(e))
+        print(
+            "🔥 GEOCODING ERROR:",
+            str(e)
+        )
         return None, None
 
+
+# ============================================================
+# APPLY CONSULTANT
+# ============================================================
+
+@consultant_bp.route("/apply-consultant", methods=["POST"])
 def apply_consultant():
+
     try:
-        data = request.json
+        data = request.get_json()
 
         if not data:
-            return jsonify({"status": "error", "message": "No data provided"}), 400
+            return jsonify({
+                "status": "error",
+                "message": "No data provided"
+            }), 400
 
-        # ✅ SAFE TYPE CONVERSION
+        print("\n==============================")
+        print("NEW CONSULTANT APPLICATION")
+        print("==============================")
+
+        print("REQUEST DATA:", data)
+
+        # ====================================================
+        # BASIC DATA
+        # ====================================================
+
+        full_name = data.get("fullName")
+        city = data.get("city")
+        address = data.get("address")
+
+        # ====================================================
+        # EXPERIENCE
+        # ====================================================
+
         experience = data.get("experience")
+
         try:
-            experience = int(experience) if experience else None
-        except ValueError:
+            experience = (
+                int(experience)
+                if experience not in [None, ""]
+                else None
+            )
+        except (ValueError, TypeError):
             return jsonify({
                 "status": "error",
                 "message": "Experience must be a number"
             }), 400
 
-        # ✅ GENERATE UNIQUE CONSULTANT ID
-        consultant_id = f"CONS{random.randint(100000,999999)}{int(datetime.utcnow().timestamp())}"
+        # ====================================================
+        # CONSULTATION FEE
+        # ====================================================
 
-        # 📍 GET LOCATION AUTOMATICALLY
-        address = data.get("address")
-        city = data.get("city")
+        consultation_fee = data.get(
+            "consultation_fee"
+        )
+
+        try:
+            consultation_fee = (
+                int(consultation_fee)
+                if consultation_fee not in [None, ""]
+                else 500
+            )
+        except (ValueError, TypeError):
+            return jsonify({
+                "status": "error",
+                "message": "Consultation fee must be a number"
+            }), 400
+
+        # ====================================================
+        # GENERATE CONSULTANT ID
+        # ====================================================
+
+        consultant_id = (
+            f"CONS"
+            f"{random.randint(100000, 999999)}"
+            f"{int(datetime.utcnow().timestamp())}"
+        )
+
+        # ====================================================
+        # AUTOMATICALLY GET LAT/LONG
+        # ====================================================
 
         latitude, longitude = get_coordinates(
             address,
             city
         )
 
+        print(
+            "FINAL COORDINATES:",
+            latitude,
+            longitude
+        )
+
+        # ====================================================
+        # EXPERTISE
+        # ====================================================
+
+        expertise = data.get(
+            "expertise",
+            []
+        )
+
+        if isinstance(expertise, list):
+            expertise = json.dumps(expertise)
+        else:
+            expertise = json.dumps(
+                [str(expertise)]
+            )
+
+        # ====================================================
+        # CREATE CONSULTANT
+        # ====================================================
+
         consultant = Consultant(
             consultant_id=consultant_id,
-            full_name=data.get("fullName"),
+
+            full_name=full_name,
+
             city=city,
+
             address=address,
 
-            # 📍 SAVE COORDINATES
+            # 📍 AUTOMATIC GPS
             latitude=latitude,
             longitude=longitude,
 
-            expertise=json.dumps(data.get("expertise", [])),
+            expertise=expertise,
+
             experience=experience,
-            languages=data.get("languages"),
-            bio=data.get("bio"),
-            phone=data.get("phone"),
-            photo=data.get("photo") or "",
-            certificate=data.get("certificate") or "",
-            govt_id=data.get("govt_id") or "",
-            consultation_fee=data.get("consultation_fee"),
+
+            languages=data.get(
+                "languages"
+            ),
+
+            bio=data.get(
+                "bio"
+            ),
+
+            phone=data.get(
+                "phone"
+            ),
+
+            photo=data.get(
+                "photo"
+            ) or "",
+
+            certificate=data.get(
+                "certificate"
+            ) or "",
+
+            govt_id=data.get(
+                "govt_id"
+            ) or "",
+
+            consultation_fee=consultation_fee,
+
+            status="pending"
         )
 
+        # ====================================================
+        # SAVE
+        # ====================================================
+
         db.session.add(consultant)
+
         db.session.commit()
-        add_activity(
-            data.get("phone"),
-            "consultant_apply",
-            "Consultant Application Submitted",
-            "Your consultant profile was submitted for approval"
+
+        print(
+            "✅ CONSULTANT CREATED:",
+            consultant.id
         )
+
+        # ====================================================
+        # ACTIVITY
+        # ====================================================
+
+        try:
+            add_activity(
+                data.get("phone"),
+                "consultant_apply",
+                "Consultant Application Submitted",
+                "Your consultant profile was submitted for approval"
+            )
+        except Exception as activity_error:
+            print(
+                "⚠️ ACTIVITY ERROR:",
+                str(activity_error)
+            )
+
+        # ====================================================
+        # RESPONSE
+        # ====================================================
 
         return jsonify({
             "status": "success",
-            "id": consultant.id
-        })
+            "message": "Consultant application submitted successfully",
+            "id": consultant.id,
+            "latitude": consultant.latitude,
+            "longitude": consultant.longitude
+        }), 201
 
     except Exception as e:
-        db.session.rollback()  # ✅ IMPORTANT
-        print("🔥 APPLY CONSULTANT ERROR:", str(e))
+
+        db.session.rollback()
+
+        print(
+            "🔥 APPLY CONSULTANT ERROR:",
+            str(e)
+        )
 
         return jsonify({
             "status": "error",
