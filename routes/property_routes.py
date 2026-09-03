@@ -41,12 +41,16 @@ def add_property():
         property_id=property_id,
         title=data.get("title"),
 
-        # Broad property type
         property_type=(
             data.get("propertyType")
             or data.get("category")
             or "residential"
         ).lower().strip(),
+
+        category=(
+            data.get("category")
+            or ""
+        ).strip(),
 
         purpose=data.get("purpose"),
         city=data.get("city"),
@@ -72,11 +76,8 @@ def add_property():
             "facilities": data.get("features", {}).get("facilities", []),
 
             "extra": {
-                # IMPORTANT
                 "category": data.get("category"),
-
                 "property_type": data.get("propertyType"),
-
                 "project_name": data.get("projectName"),
                 "balconies": data.get("balconies"),
                 "floor_number": data.get("floorNumber"),
@@ -305,43 +306,24 @@ def get_properties():
         # CATEGORY
         # =========================
 
-        # DATABASE CATEGORY FIRST
         category_value = (
-            getattr(p, "category", None)
+            p.category
             or extra.get("category")
             or ""
-        )
-
-        # Clean category
-        category_value = str(category_value).strip()
-
-        # If category is missing, determine from property_type
-        property_type_value = str(
-            p.property_type or ""
         ).strip()
 
-        property_type_lower = property_type_value.lower()
-
         if not category_value:
+            property_type_lower = str(p.property_type or "").lower().strip()
 
             if "sco" in property_type_lower and "plot" in property_type_lower:
                 category_value = "SCO Plot"
-
-            elif "residential" in property_type_lower and "plot" in property_type_lower:
-                category_value = "Residential Plot"
-
             elif "commercial" in property_type_lower and "plot" in property_type_lower:
                 category_value = "Commercial Plot"
-
-            elif property_type_lower in [
-                "plot",
-                "land",
-                "land / plot",
-                "land/plot"
-            ]:
+            elif "residential" in property_type_lower and "plot" in property_type_lower:
+                category_value = "Residential Plot"
+            elif property_type_lower in ["plot", "land", "land / plot", "land/plot"]:
                 category_value = "Residential Plot"
 
-        # Put category back into features
         extra["category"] = category_value
 
         # =========================
@@ -360,12 +342,8 @@ def get_properties():
         result.append({
             "id": p.id,
             "title": p.title,
-
             "property_type": p.property_type,
-
-            # IMPORTANT: actual DB category
             "category": category_value,
-
             "city": p.city,
             "locality": p.locality,
             "location": f"{p.locality}, {p.city}",
