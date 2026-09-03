@@ -185,18 +185,6 @@ def get_properties():
     )
 
     # =========================
-    # CATEGORY
-    # =========================
-
-    if category:
-        query = query.filter(
-            or_(
-                Property.category.ilike(f"%{category}%"),
-                Property.property_type.ilike(f"%{category}%")
-            )
-        )
-
-    # =========================
     # CITY
     # =========================
 
@@ -317,18 +305,17 @@ def get_properties():
         # CATEGORY
         # =========================
 
-        # First try category saved inside features
+        # DATABASE CATEGORY FIRST
         category_value = (
-            extra.get("category")
-            or getattr(p, "category", None)
+            getattr(p, "category", None)
+            or extra.get("category")
             or ""
         )
 
         # Clean category
         category_value = str(category_value).strip()
 
-        # If category is missing, try to determine it
-        # from property_type for old records
+        # If category is missing, determine from property_type
         property_type_value = str(
             p.property_type or ""
         ).strip()
@@ -343,6 +330,9 @@ def get_properties():
             elif "residential" in property_type_lower and "plot" in property_type_lower:
                 category_value = "Residential Plot"
 
+            elif "commercial" in property_type_lower and "plot" in property_type_lower:
+                category_value = "Commercial Plot"
+
             elif property_type_lower in [
                 "plot",
                 "land",
@@ -351,7 +341,7 @@ def get_properties():
             ]:
                 category_value = "Residential Plot"
 
-        # Put category back into features too
+        # Put category back into features
         extra["category"] = category_value
 
         # =========================
@@ -368,42 +358,26 @@ def get_properties():
         # =========================
 
         result.append({
-
             "id": p.id,
-
             "title": p.title,
 
-            # Broad property type
             "property_type": p.property_type,
 
-            # IMPORTANT
-            # Frontend needs this
+            # IMPORTANT: actual DB category
             "category": category_value,
 
             "city": p.city,
-
             "locality": p.locality,
-
             "location": f"{p.locality}, {p.city}",
-
             "price": p.price,
-
             "beds": p.bedrooms,
-
             "baths": p.bathrooms,
-
             "area": p.size,
-
             "purpose": p.purpose,
-
             "type": "buy",
-
             "image": photos[0] if photos else "",
-
             "mobile": p.mobile,
-
             "listing_type": p.listing_type,
-
             "features": features
         })
 
