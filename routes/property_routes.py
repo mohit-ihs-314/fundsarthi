@@ -341,22 +341,41 @@ def get_properties():
 
         result.append({
             "id": p.id,
+            "property_id": p.property_id,
+
             "title": p.title,
             "property_type": p.property_type,
             "category": category_value,
+
             "city": p.city,
             "locality": p.locality,
             "location": f"{p.locality}, {p.city}",
+
             "price": p.price,
             "beds": p.bedrooms,
             "baths": p.bathrooms,
             "area": p.size,
+
             "purpose": p.purpose,
             "type": "buy",
+
             "image": photos[0] if photos else "",
+
             "mobile": p.mobile,
+
             "listing_type": p.listing_type,
-            "features": features
+
+            "features": features,
+
+            # =====================================
+            # MANUAL PROMOTION FLAGS
+            # =====================================
+
+            "is_hot_deal": bool(p.is_hot_deal),
+            "is_trending": bool(p.is_trending),
+
+            "hot_deal_order": p.hot_deal_order or 0,
+            "trending_order": p.trending_order or 0,
         })
 
     return jsonify({

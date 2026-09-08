@@ -26,15 +26,50 @@ class Property(db.Model):
     mobile = db.Column(db.String(20))
     email = db.Column(db.String(100))
 
-    status = db.Column(db.String(20), default="pending")
+    status = db.Column(
+        db.String(20),
+        default="pending"
+    )
 
-    photos = db.Column(db.Text)       # JSON string
-    videos = db.Column(db.Text)       # JSON string
-    floor_plans = db.Column(db.Text)  # JSON string
+    photos = db.Column(db.Text)
+    videos = db.Column(db.Text)
+    floor_plans = db.Column(db.Text)
 
     purpose = db.Column(db.String(10))
     features = db.Column(db.Text)
-    listing_type = db.Column(db.String(50), default="normal")
+
+    listing_type = db.Column(
+        db.String(50),
+        default="normal"
+    )
+
+    # =====================================
+    # MANUAL HOT DEAL / TRENDING
+    # =====================================
+
+    is_hot_deal = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False
+    )
+
+    is_trending = db.Column(
+        db.Boolean,
+        nullable=False,
+        default=False
+    )
+
+    hot_deal_order = db.Column(
+        db.Integer,
+        nullable=False,
+        default=0
+    )
+
+    trending_order = db.Column(
+        db.Integer,
+        nullable=False,
+        default=0
+    )
 
 
 class PropertyEnquiry(db.Model):
