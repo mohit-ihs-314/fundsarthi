@@ -4,7 +4,7 @@ from extensions import db
 import random
 import cloudinary.uploader
 import json
-from sqlalchemy import or_
+from sqlalchemy import or_, and_, func
 from services.activity_service import add_activity
 from services.sms_service import send_property_enquiry_sms
 import math
@@ -111,7 +111,6 @@ def add_property():
         ),
 
         features=json.dumps({
-
             "highlights": (
                 data.get("features", {})
                 .get("highlights", [])
@@ -123,34 +122,22 @@ def add_property():
             ),
 
             "extra": {
-
                 "category": data.get("category"),
-
                 "property_type": data.get("propertyType"),
-
                 "project_name": data.get("projectName"),
-
                 "balconies": data.get("balconies"),
-
                 "floor_number": data.get("floorNumber"),
-
                 "furnishing": data.get("furnishingStatus"),
-
                 "parking": data.get("parking"),
-
                 "power_backup": data.get("powerBackup"),
-
                 "construction_status": data.get("constructionStatus"),
-
                 "possession": data.get("possession"),
-
                 "builder": data.get("builder"),
             }
         })
     )
 
     db.session.add(new_property)
-
     db.session.commit()
 
     add_activity(
@@ -202,21 +189,18 @@ def upload_image():
     try:
 
         if file.mimetype.startswith("video"):
-
             result = cloudinary.uploader.upload(
                 file,
                 resource_type="video"
             )
 
         elif file.mimetype == "application/pdf":
-
             result = cloudinary.uploader.upload(
                 file,
                 resource_type="raw"
             )
 
         else:
-
             result = cloudinary.uploader.upload(
                 file,
                 resource_type="image"
@@ -236,33 +220,119 @@ def upload_image():
 
 
 # ============================================================
-# GET PROPERTIES
+# CATEGORY / TAB HELPERS
 # ============================================================
+
+# IMPORTANT:
+# The frontend has four listing tabs:
+#   Residential / Commercial / SCO / Plot
 #
-# IMPORTANT PERFORMANCE CHANGE:
+# Category and property_type are existing DB columns.
+# We do NOT require a new DB column for this version.
 #
-# We DO NOT use:
+# The frontend can call:
 #
-#     query.paginate(...)
+#   /properties?tab=residential
+#   /properties?tab=commercial
+#   /properties?tab=sco
+#   /properties?tab=plot
 #
-# because paginate() performs a COUNT(*) query.
-#
-# The frontend only needs:
-#
-#     12 properties
-#     +
-#     has_next
-#
-# Therefore we fetch 13 records.
-#
-# 12 = display
-# 13th = tells us another page exists
-#
-# This removes the unnecessary COUNT query.
+# This allows the database to return the requested category
+# directly instead of making the frontend download mixed pages
+# and classify them after the response arrives.
+
+
+def normalized_category_text():
+
+    category_column = func.lower(
+        func.coalesce(Property.category, "")
+    )
+
+    property_type_column = func.lower(
+        func.coalesce(Property.property_type, "")
+    )
+
+    return func.concat(
+        category_column,
+        " ",
+        property_type_column
+    )
+
+
+def apply_tab_filter(query, tab):
+
+    if not tab:
+        return query
+
+    tab = str(tab).lower().strip()
+
+    text = normalized_category_text()
+
+    is_plot = or_(
+        text.like("%plot%"),
+        text.like("%land%")
+    )
+
+    is_sco = or_(
+        text.like("%sco%"),
+        text.like("%shop cum office%"),
+        text.like("%shop-cum-office%")
+    )
+
+    is_commercial = or_(
+        text.like("%commercial%"),
+        text.like("%office%"),
+        text.like("%shop%"),
+        text.like("%retail%"),
+        text.like("%warehouse%"),
+        text.like("%showroom%"),
+        text.like("%industrial%")
+    )
+
+    if tab in ("plot", "plots", "land", "land/plot", "land / plot"):
+        return query.filter(is_plot)
+
+    if tab in ("sco", "sco plot"):
+        return query.filter(
+            and_(
+                is_sco,
+                ~is_plot
+            )
+        )
+
+    if tab in ("commercial", "commercials"):
+        return query.filter(
+            and_(
+                is_commercial,
+                ~is_plot,
+                ~is_sco
+            )
+        )
+
+    if tab in ("residential", "residentials"):
+        # Same rule as the existing frontend:
+        # anything that is NOT explicitly Plot / SCO / Commercial
+        # remains in Residential.
+        return query.filter(
+            and_(
+                ~is_plot,
+                ~is_sco,
+                ~is_commercial
+            )
+        )
+
+    # Unknown tab: do not accidentally return zero records.
+    return query
+
+
+# ============================================================
+# GET PROPERTIES
 # ============================================================
 
 @property_bp.route("/properties", methods=["GET"])
 def get_properties():
+
+    request_started_at = __import__("time").perf_counter()
 
     # ========================================================
     # PAGINATION
@@ -289,12 +359,19 @@ def get_properties():
 
     offset = (page - 1) * limit
 
-    # Fetch one extra property.
+    # Fetch one extra row.
     fetch_limit = limit + 1
 
     # ========================================================
     # FILTERS
     # ========================================================
+
+    # NEW:
+    # tab is specifically for the four frontend tabs.
+    #
+    # It is different from "category" because the database may
+    # contain values such as Apartment, Flat, Villa, Plot, etc.
+    tab = request.args.get("tab")
 
     category = request.args.get("category")
 
@@ -326,6 +403,30 @@ def get_properties():
 
     query = Property.query.filter(
         Property.status == "approved"
+    )
+
+    # ========================================================
+    # TAB
+    # ========================================================
+    #
+    # This is the most important performance fix.
+    #
+    # If the frontend asks:
+    #
+    #   ?tab=residential
+    #
+    # the database returns Residential records directly.
+    #
+    # We no longer need to download page 1, page 2, page 3,
+    # page 4 and then classify everything in React just to find
+    # Residential properties.
+    #
+    # Existing "category" filter is still supported below.
+    # ========================================================
+
+    query = apply_tab_filter(
+        query,
+        tab
     )
 
     # ========================================================
@@ -375,9 +476,7 @@ def get_properties():
         query = query.filter(
             or_(
                 Property.title.ilike(search_term),
-
                 Property.city.ilike(search_term),
-
                 Property.locality.ilike(search_term)
             )
         )
@@ -400,11 +499,6 @@ def get_properties():
 
     # ========================================================
     # BUILDER
-    # ========================================================
-    #
-    # Builder is stored inside features JSON.
-    #
-    # Keep this filter compatible with existing data.
     # ========================================================
 
     if builder:
@@ -445,12 +539,6 @@ def get_properties():
 
     else:
 
-        # Most important/default listing query.
-        #
-        # Database index should be:
-        #
-        # (status, id DESC)
-        #
         query = query.order_by(
             Property.id.desc()
         )
@@ -472,9 +560,7 @@ def get_properties():
 
     has_next = len(properties) > limit
 
-    # Remove the extra row.
     if has_next:
-
         properties = properties[:limit]
 
     # ========================================================
@@ -502,7 +588,6 @@ def get_properties():
             features = {}
 
         if not isinstance(features, dict):
-
             features = {}
 
         extra = features.get(
@@ -511,7 +596,6 @@ def get_properties():
         )
 
         if not isinstance(extra, dict):
-
             extra = {}
 
         features["extra"] = extra
@@ -628,8 +712,6 @@ def get_properties():
 
             "features": features,
 
-            # CRM promotion flags
-
             "is_hot_deal": bool(
                 p.is_hot_deal
             ),
@@ -647,16 +729,22 @@ def get_properties():
             ),
         })
 
-    # ========================================================
-    # RESPONSE
-    # ========================================================
-    #
-    # IMPORTANT:
-    #
-    # total/pages are intentionally removed.
-    #
-    # The frontend only needs has_next.
-    # ========================================================
+    elapsed_ms = round(
+        (__import__("time").perf_counter() - request_started_at) * 1000
+    )
+
+    print(
+        "[Property API]",
+        {
+            "tab": tab,
+            "category": category,
+            "page": page,
+            "limit": limit,
+            "returned": len(result),
+            "has_next": has_next,
+            "elapsed_ms": elapsed_ms,
+        }
+    )
 
     return jsonify({
 
@@ -679,19 +767,6 @@ def get_properties():
 
 # ============================================================
 # NEARBY PROPERTIES
-# ============================================================
-#
-# This endpoint is NOT used for the main listing.
-#
-# The previous version loaded EVERY approved Property object
-# into memory:
-#
-#     Property.query.filter_by(...).all()
-#
-# We at least restrict the columns to only what is needed.
-#
-# The best long-term solution is a database geographic query,
-# but this version preserves your existing Haversine behavior.
 # ============================================================
 
 @property_bp.route("/properties/nearby", methods=["GET"])
@@ -720,7 +795,6 @@ def nearby_properties():
             "message": "Latitude & Longitude required"
         }), 400
 
-    # Only select fields required by nearby.
     properties = (
         db.session.query(
             Property.id,
@@ -749,21 +823,11 @@ def nearby_properties():
         .all()
     )
 
-    # ========================================================
-    # RADIUS
-    # ========================================================
-
     radius = 10
-
     max_radius = 100
-
     required_count = 20
 
     nearby = []
-
-    # ========================================================
-    # FIND NEARBY
-    # ========================================================
 
     while radius <= max_radius:
 
@@ -798,11 +862,7 @@ def nearby_properties():
 
                     features = {}
 
-                if not isinstance(
-                    features,
-                    dict
-                ):
-
+                if not isinstance(features, dict):
                     features = {}
 
                 extra = features.setdefault(
@@ -810,10 +870,7 @@ def nearby_properties():
                     {}
                 )
 
-                if not isinstance(
-                    extra,
-                    dict
-                ):
+                if not isinstance(extra, dict):
 
                     extra = {}
 
@@ -829,7 +886,6 @@ def nearby_properties():
                     or ""
                 )
 
-                # Safe photo parsing
                 try:
 
                     photos = (
@@ -881,22 +937,13 @@ def nearby_properties():
                 })
 
         if len(nearby) >= required_count:
-
             break
 
         radius += 10
 
-    # ========================================================
-    # SORT
-    # ========================================================
-
     nearby.sort(
         key=lambda x: x["distance"]
     )
-
-    # ========================================================
-    # RESPONSE
-    # ========================================================
 
     return jsonify({
 
@@ -923,10 +970,6 @@ def get_property(id):
             "status": "error"
         }), 404
 
-    # ========================================================
-    # FEATURES
-    # ========================================================
-
     try:
 
         features = (
@@ -939,11 +982,7 @@ def get_property(id):
 
         features = {}
 
-    if not isinstance(
-        features,
-        dict
-    ):
-
+    if not isinstance(features, dict):
         features = {}
 
     extra = features.get(
@@ -951,16 +990,8 @@ def get_property(id):
         {}
     )
 
-    if not isinstance(
-        extra,
-        dict
-    ):
-
+    if not isinstance(extra, dict):
         extra = {}
-
-    # ========================================================
-    # ACTIVITY
-    # ========================================================
 
     mobile = request.args.get(
         "mobile"
@@ -974,10 +1005,6 @@ def get_property(id):
             "Viewed Property",
             property.title
         )
-
-    # ========================================================
-    # SAFE MEDIA PARSING
-    # ========================================================
 
     try:
 
@@ -1015,10 +1042,6 @@ def get_property(id):
 
         floor_plans = []
 
-    # ========================================================
-    # RESPONSE
-    # ========================================================
-
     return jsonify({
 
         "status": "success",
@@ -1055,8 +1078,6 @@ def get_property(id):
             "floor_plans": floor_plans,
 
             "features": features,
-
-            # Extra fields
 
             "project_name": (
                 extra.get("project_name")
@@ -1142,7 +1163,6 @@ def schedule_visit():
     )
 
     db.session.add(enquiry)
-
     db.session.commit()
 
     property = Property.query.get(
