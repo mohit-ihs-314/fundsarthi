@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify
 from models.property import Property, PropertyEnquiry
+from models.banner import Banner
 from extensions import db
+from datetime import datetime
 import random
 import cloudinary.uploader
 import json
@@ -722,3 +724,46 @@ def my_properties():
         })
 
     return jsonify({"status": "success", "data": result})
+
+# ============================================================
+# BANNERS
+# ============================================================
+
+@property_bp.route("/banners", methods=["GET"])
+def get_banners():
+
+    now = datetime.utcnow()
+
+    banners = (
+        Banner.query
+        .filter(
+            Banner.is_active.is_(True),
+            or_(
+                Banner.start_date.is_(None),
+                Banner.start_date <= now
+            ),
+            or_(
+                Banner.end_date.is_(None),
+                Banner.end_date >= now
+            )
+        )
+        .order_by(
+            Banner.display_order.asc(),
+            Banner.id.desc()
+        )
+        .all()
+    )
+
+    result = [banner.to_dict() for banner in banners]
+
+    response = jsonify({
+        "status": "success",
+        "count": len(result),
+        "data": result
+    })
+
+    response.headers["Cache-Control"] = (
+        "public, max-age=60, stale-while-revalidate=300"
+    )
+
+    return response
